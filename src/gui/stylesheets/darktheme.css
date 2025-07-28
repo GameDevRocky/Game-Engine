@@ -1,0 +1,89 @@
+/* Main window background */
+QMainWindow {
+    background-color: #121212;
+}
+
+/* Dock widgets with border and rounded corners */
+QDockWidget {
+    border: 0px solid #444444;
+    border-radius: 5px;
+    titlebar-close-icon: none; /* Optional: remove close icon if needed */
+    background-color: #1e1e1e;
+    color: #eeeeee;
+}
+
+/* Dock widget title bar */
+QDockWidget::title {
+    background-color: #2c2c2c;
+    padding: 5px;
+    text-align: left;
+    color: #cccccc;
+    font-weight: bold;
+    border-bottom: 1px solid #444444;
+}
+
+/* QTextEdit inside docks or elsewhere */
+QTextEdit {
+    background-color: #222222;
+    color: #eeeeee;
+    selection-background-color: #3d301d;
+}
+
+/* QTabWidget tab bar */
+QTabBar::tab {
+    background:rgb(15, 15, 15);
+    color: #cccccc;
+    padding: 2px 8px;
+    border: 1px solid #444444;
+    border-bottom: none;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+    margin-right: 2px;
+}
+
+QTabBar::tab:selected {
+    background: #2a2a2a;
+    color: #ffffff;
+    border-color: #1b160d;
+    border-bottom: 2px solid #121212;
+}
+
+/* Scrollbars */
+QScrollBar:vertical {
+    background: #1e1e1e;
+    width: 12px;
+    margin: 0px 0px 0px 0px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical {
+    background: #878787;
+    min-height: 20px;
+    border-radius: 4px;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    background: none;
+}
+
+/* Buttons (optional, for consistency) */
+QPushButton {
+    background-color: #2c2c2c;
+    color: #eeeeee;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 5px 10px;
+}
+
+QPushButton:hover {
+    background-color: #3d301d;
+    color: #ffffff;
+}
+QTreeWidget::item {
+    padding: 2px 2px;
+    color: #eeeeee;
+    background-color: #121212;
+}
+QTreeWidget::item:selected {
+    background-color: rgb(41, 41, 41);
+}
