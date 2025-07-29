@@ -44,3 +44,19 @@ class GameObject:
     def destroy(self):
         for comp in self.components.values():
             comp.destroy()
+            
+    def to_dict(self):
+            return {
+                "name": self.name,
+                "position": list(self.transform.position),
+                "components": [c.to_dict() for c in self.components]
+            }
+
+    @classmethod
+    def from_dict(cls, data):
+        go = cls(name=data["name"])
+        go.transform.position = tuple(data["position"])
+        for comp_data in data["components"]:
+            component = ComponentFactory.create(comp_data)
+            go.add_component(component)
+        return go
