@@ -6,12 +6,3 @@ engine = Engine()
 editor = Editor(engine)
 engine.start()
 sys.exit(editor.gui_app.exec())
-
-
-
-
-
-
-
-
-

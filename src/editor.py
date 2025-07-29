@@ -62,4 +62,6 @@ class Editor:
 
     def update(self):
         self.inspector.update()
+        self.scene_view.update()
+        self.game_view.update()
         pass

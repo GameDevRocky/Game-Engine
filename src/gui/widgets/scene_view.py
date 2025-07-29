@@ -62,13 +62,10 @@ class SceneView(QOpenGLWidget):
 
     def paintGL(self):
         self.fbo.use()
-        self.ctx.clear(1.0, 0.1, 0.1, 1.0)
+        self.ctx.clear(0.2, 0.4, 0.7, 1.0)
         self.vao.render(moderngl.TRIANGLE_STRIP)
-
-        # Render FBO texture back to default framebuffer (optional)
         self.ctx.screen.use()
         self.fbo.color_attachments[0].use(location=0)
-        self.ctx.clear(1.0, 0.0, 0.0, 1.0)
         self.vao.render(moderngl.TRIANGLE_STRIP)
     
     def update(self):
