@@ -1,4 +1,4 @@
-from .states import EngineState
+from . import EngineState
 
 class StateManager:    
     def __init__(self):

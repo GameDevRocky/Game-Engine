@@ -4,13 +4,13 @@ from .component import Component
 from ..core import Field
 
 class Transform(Component):
-    def __init__(self, gameobject):
+    def __init__(self, gameobject, position= [0,0], angle = 0, scale= [0, 0]):
         super().__init__(gameobject)
 
         # Local transform data
-        self.local_position = Field(Vector2(0, 0), Vector2)
-        self.local_scale = Field(Vector2(1, 1), Vector2)
-        self.local_angle = Field(0.0, float)  # in degrees
+        self.local_position = Field(Vector2(position), Vector2)
+        self.local_scale = Field(Vector2(scale), Vector2)
+        self.local_angle = Field(angle, float)  # in degrees
 
         # World transform data
         self.world_position = Vector2(0, 0)
@@ -19,23 +19,64 @@ class Transform(Component):
 
         # Parent transform (for hierarchy)
         self.parent = None
+        self.children = set()
 
         # Transformation matrices
         self._local_matrix = np.identity(3)
         self._world_matrix = np.identity(3)
         self._dirty = True
 
-    def set_parent(self, parent_transform, keep_world=True):
-        if parent_transform is self:
+    def to_dict(self):
+        return {
+            "position": [self.position.x, self.position.y],
+            "rotation": self.angle,
+            "scale": [self.scale.x, self.scale.y]
+        }
+
+    @classmethod
+    def from_dict(cls, data, gameobject):
+        position = data.get("position", [0, 0])
+        scale = data.get("scale", [1, 1])
+        return cls(
+            gameobject,
+            position=position,
+            angle=data.get("rotation", 0),
+            scale=scale
+        )
+    
+    def set_parent(self, new_transform, keep_world=True):
+        """Change the parent of this transform.
+        
+        Args:
+            new_transform: The new parent transform, or None to unparent
+            keep_world: If True, maintain world position/rotation/scale while changing parent
+        """
+        if new_transform is self:
             raise ValueError("Cannot set a Transform as its own parent.")
 
+        # Remove from old parent's children
+        if self.parent:
+            self.parent.children.discard(self)
+
+        # Store world transform if keeping it
         if keep_world:
             world_matrix = self.get_world_matrix()
-            self.parent = parent_transform
 
+        # Update parent reference
+        self.parent = new_transform
+        
+        # Add to new parent's children if there is a new parent
+        if new_transform:
+            new_transform.children.add(self)
+
+        # Update transform matrices
+        if keep_world:
             if self.parent:
+                # Calculate new local transform that maintains world transform
                 parent_world_inv = np.linalg.inv(self.parent.get_world_matrix())
                 self._local_matrix = parent_world_inv @ world_matrix
+                
+                # Extract local transform values
                 self.local_position = Vector2(*self._local_matrix[:2, 2])
                 self.local_scale = Vector2(
                     np.linalg.norm(self._local_matrix[0, :2]),
@@ -43,6 +84,7 @@ class Transform(Component):
                 )
                 self.local_angle = np.degrees(np.arctan2(self._local_matrix[0,1], self._local_matrix[0,0]))
             else:
+                # When unparenting, local = world
                 self._local_matrix = world_matrix.copy()
                 self.local_position = Vector2(*world_matrix[:2, 2])
                 self.local_scale = Vector2(
@@ -51,7 +93,8 @@ class Transform(Component):
                 )
                 self.local_angle = np.degrees(np.arctan2(world_matrix[0,1], world_matrix[0,0]))
         else:
-            self.parent = parent_transform
+            # Keep local transform as is, world will update on next access
+            pass
 
         self._dirty = True
 

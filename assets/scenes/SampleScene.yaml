@@ -1,0 +1,18 @@
+name: "SampleScene"
+gameObjects:
+  - name: "Parent"
+    active: true
+    components:
+      - type: "Transform"
+        position: [0, 0]
+        angle: 0
+        scale: [1, 1]
+    children:
+      - name: "Child"
+        active: true
+        components:
+          - type: "Transform"
+            position: [1, 0]
+            angle: 0
+            scale: [1, 1]
+        children: []

@@ -1,5 +1,5 @@
 from .state import EngineState
-from ..time_manager import Time
+from ..time.time_manager import Time
 
 class PlayState(EngineState):
 

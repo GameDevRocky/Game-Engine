@@ -2,9 +2,10 @@ import sys
 from PyQt6.QtWidgets import QApplication, QTextEdit, QTabWidget, QDockWidget
 from .gui.widgets import MainWindow, Console, Inspector, Hierarchy, SceneView, GameView, ProjectExplorer
 from PyQt6.QtCore import Qt
-
-class Editor:
+from .core import Observable
+class Editor(Observable):
     def __init__(self, engine):
+        super().__init__()
         from .engine import Engine
         self.engine : Engine = engine
         self.engine.editor = self
@@ -59,6 +60,18 @@ class Editor:
         self.main_window.setStyleSheet(stylesheet)  # dark gray/near black
 
         self.main_window.show()
+
+    def start(self):
+        self.subscribe_widgets()
+
+    def set_selected_gameobject(self, gameobject):
+        self.selected_gameObject = gameobject
+        self.notify()
+
+    def subscribe_widgets(self):
+        self.subscribe(self.inspector.rebuild)
+        pass
+
 
     def update(self):
         self.inspector.update()

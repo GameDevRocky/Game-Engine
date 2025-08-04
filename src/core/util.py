@@ -109,3 +109,20 @@ class Field:
 
     def __float__(self):
         return float(self.value)
+
+class Observable:
+    def __init__(self):
+        self._observers = []
+
+    def subscribe(self, callback):
+        self._observers.append(callback)
+
+    def unsubscribe(self, callback):
+            self._observers.remove(callback)  # safe even if not present
+
+    def notify(self):
+        for cb in list(self._observers):
+            cb()
+
+    def clear_observers(self):
+        self._observers.clear()
