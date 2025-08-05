@@ -23,11 +23,11 @@ class SceneManager(Observable):
 
     def start(self):
         scene = Serializer.load_from_yaml("assets\scenes\SampleScene.yaml", self.engine)
-        print(scene)
         self.add_scene(scene)
-        self.notify()
         
     def add_scene(self, scene):
+        from ...gui.widgets import Hierarchy
         self.loaded_scenes.add(scene)
         self.active_scene = scene
+        scene.subscribe(lambda: Hierarchy._instance.update_scene_widget(scene))
         self.notify()

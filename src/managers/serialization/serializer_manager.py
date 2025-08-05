@@ -5,10 +5,11 @@ class Serializer:
     _component_registry = {}
 
     @classmethod
-    def register_component(cls, type_name, serializer_fn, deserializer_fn):
+    def register_component(cls, type_name, serializer_fn, deserializer_fn, component_widget):
         cls._component_registry[type_name] = {
             "serialize": serializer_fn,
             "deserialize": deserializer_fn,
+            "widget" : component_widget
         }
 
     @classmethod

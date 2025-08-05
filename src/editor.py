@@ -70,6 +70,7 @@ class Editor(Observable):
 
     def subscribe_widgets(self):
         self.subscribe(self.inspector.rebuild)
+        
         pass
 
 

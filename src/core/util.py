@@ -110,19 +110,26 @@ class Field:
     def __float__(self):
         return float(self.value)
 
-class Observable:
+from PyQt6.QtCore import QObject, pyqtSignal
+
+class Observable(QObject):
+    updated = pyqtSignal()
+
     def __init__(self):
-        self._observers = []
+        super().__init__()
 
     def subscribe(self, callback):
-        self._observers.append(callback)
+        self.updated.connect(callback)
 
     def unsubscribe(self, callback):
-            self._observers.remove(callback)  # safe even if not present
+        try:
+            self.updated.disconnect(callback)
+        except TypeError:
+            pass  # Already disconnected or never connected
 
     def notify(self):
-        for cb in list(self._observers):
-            cb()
+        self.updated.emit()
 
     def clear_observers(self):
-        self._observers.clear()
+        # No direct way to clear all slots, so you can recreate the signal by reassigning
+        self.updated = pyqtSignal()

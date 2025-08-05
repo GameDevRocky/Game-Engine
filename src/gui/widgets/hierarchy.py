@@ -3,9 +3,17 @@ from PyQt6.QtWidgets import (
     QTreeWidgetItem, QLabel, QMenu, QInputDialog, QScrollArea, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QPoint
-from PyQt6.QtGui import QAction, QMouseEvent
+from PyQt6.QtGui import QAction, QMouseEvent, QIcon
 from ...core import GameObject
 from ...managers.scenes import Scene
+
+from PyQt6.QtWidgets import QStyledItemDelegate, QLineEdit
+
+class LargeLineEditDelegate(QStyledItemDelegate):
+    def createEditor(self, parent, option, index):
+        editor = QLineEdit(parent)
+        editor.setFixedHeight(24)  # Or larger if you prefer
+        return editor
 
 
 class SceneTreeWidget(QTreeWidget):
@@ -18,6 +26,10 @@ class SceneTreeWidget(QTreeWidget):
         self.setDropIndicatorShown(True)
         self.setDragDropMode(QTreeWidget.DragDropMode.DragDrop)
         self.setIndentation(20)
+        self.setItemDelegate(LargeLineEditDelegate(self))
+        self.setEditTriggers(QTreeWidget.EditTrigger.DoubleClicked | QTreeWidget.EditTrigger.SelectedClicked)
+
+
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.RightButton:
@@ -104,13 +116,23 @@ class SceneTreeWidget(QTreeWidget):
 
 
 class Hierarchy(QWidget):
+    _instance = None
+    def __new__(cls, engine=None):
+        if cls._instance is None:
+            cls._instance = super(Hierarchy, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
     def __init__(self, editor):
         from ...engine import Engine
+        if self._initialized:
+            return
+        
         super().__init__()
         self.editor = editor
         self.engine: Engine = self.editor.engine
         self.setMinimumWidth(300)
-
+        
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(0)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -118,7 +140,7 @@ class Hierarchy(QWidget):
         footer = QWidget()
         footer.setStyleSheet("background-color: #1a1a1a;")
         footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(5, 5, 5, 5)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
 
         self.add_scene_btn = QPushButton("Add New Scene")
         self.add_scene_btn.clicked.connect(self.add_scene)
@@ -126,23 +148,25 @@ class Hierarchy(QWidget):
 
         self.scenes_layout = QVBoxLayout()
         self.scenes_layout.setSpacing(0)
-        self.scenes_layout.setContentsMargins(20, 10, 20, 10)
+        self.scenes_layout.setContentsMargins(0, 0, 0, 0)
+        self.scenes_layout.addStretch()  # Pushes widgets to top
 
         self.scene_container = QScrollArea()
         self.scene_container.setWidgetResizable(True)
-        self.scenes_layout.setSpacing(10)
+        self.scenes_layout.setSpacing(0)
 
         self.scene_inner = QWidget()
         self.scene_inner.setLayout(self.scenes_layout)
+        self.scenes_layout.addStretch()
         self.scene_container.setWidget(self.scene_inner)
         
-
-
+        
         self.layout.addWidget(self.scene_container)
         self.layout.addWidget(footer)
         
         self.scene_widgets = {}
         self.engine.scene_manager.subscribe(self.on_scene_change)
+        self._initialized= True
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.RightButton:
@@ -162,7 +186,8 @@ class Hierarchy(QWidget):
         if ok and name:
             scene = Scene(self.engine, name)
             self.engine.scene_manager.add_scene(scene)
-            scene.subscribe( lambda scene= scene : self.update_scene_widget(scene))
+
+
 
     def add_scene_widget(self, scene: Scene):
         scene_widget = QWidget()
@@ -170,6 +195,7 @@ class Hierarchy(QWidget):
         scene_layout = QVBoxLayout(scene_widget)
         scene_layout.setContentsMargins(0, 0, 0, 0)
         scene_layout.setSpacing(0)
+
 
         # Header
         header = QWidget()
@@ -188,23 +214,26 @@ class Hierarchy(QWidget):
         header_layout.addWidget(add_go_btn)
 
         scene_layout.addWidget(header)
-        scene_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Scene tree (content to be toggled)
         tree = SceneTreeWidget(scene)
+        scene_layout.addWidget(tree, stretch=1)
+
         tree.itemClicked.connect(self._on_item_clicked)
         tree.itemChanged.connect(self._on_item_changed)
+        tree.setMinimumHeight(300)
         scene_layout.addWidget(tree)
 
         # Toggle visibility on header click
         def toggle_tree_visibility(event):
             tree.setVisible(not tree.isVisible())
+            
 
         header.mousePressEvent = toggle_tree_visibility
 
         # Populate the tree
         for gameobject in scene.root_gameobjects:
-            self._add_gameobject_item(tree, gameobject)
+            self._add_gameobject_item(scene, gameobject)
         tree.expandAll()
 
         # Add to layout and store
@@ -221,6 +250,7 @@ class Hierarchy(QWidget):
         for widget in self.scene_widgets.values():
             widget.deleteLater()
         self.scene_widgets.clear()
+        
 
         for scene in self.engine.scene_manager.loaded_scenes:
             scene.subscribe(lambda: self.update_scene_widget(scene))
@@ -234,11 +264,8 @@ class Hierarchy(QWidget):
         tree.clear()  # Clears all QTreeWidgetItems
 
         for gameobject in scene.root_gameobjects:
-            self._add_gameobject_item(tree, gameobject)
-
+            self._add_gameobject_item(scene, gameobject)
         tree.expandAll()
-
-
 
     def add_game_object(self, scene: Scene, parent : GameObject = None):
         from ...components import Transform
@@ -247,11 +274,15 @@ class Hierarchy(QWidget):
         gameobject.add_component(transform)
         gameobject.transform = transform
         scene.add_gameobject(gameobject, parent)
-        print(gameobject)
         return gameobject
+           
 
     
-    def _add_gameobject_item(self, tree: SceneTreeWidget, gameobject: GameObject, parent_item=None):
+    def _add_gameobject_item(self, scene: Scene, gameobject: GameObject, parent_item=None):
+        scene_widget = self.scene_widgets.get(scene)
+        if not scene_widget:
+            return
+        tree: SceneTreeWidget = scene_widget.findChild(SceneTreeWidget)
         item = QTreeWidgetItem([gameobject.name])
         item.setFlags(
             Qt.ItemFlag.ItemIsEnabled |
@@ -261,16 +292,32 @@ class Hierarchy(QWidget):
             Qt.ItemFlag.ItemIsDropEnabled
         )
         item.setData(0, Qt.ItemDataRole.UserRole, gameobject)
-
+        item.setToolTip(0, "Game Object")
+        icon = QIcon('assets\media\gameobject_icon.png')
+        item.setIcon(0, icon)
         if parent_item:
             parent_item.addChild(item)
         else:
             tree.addTopLevelItem(item)
+        def make_update_callback(obj=gameobject):
+            return lambda: self.update_gameobject_item(scene, obj)
 
         for child in gameobject.transform.children:
-            self._add_gameobject_item(tree, child.gameobject, item)
-
+            self._add_gameobject_item(scene, child.gameobject, item)
+        gameobject.subscribe(make_update_callback())
         return item
+    
+    def update_gameobject_item(self, scene : Scene, gameobject : GameObject):
+        tree: SceneTreeWidget = self.scene_widgets[scene].findChild(SceneTreeWidget)
+        if tree:
+
+            item : QTreeWidgetItem = self._find_item_by_gameobject(tree, gameobject)
+            if item:
+                item.setText(0, gameobject.name)
+        else:
+            print("item deleted")
+
+
     
     def rebuild(self, scene_widget : SceneTreeWidget):
         scene_widget.deleteLater()
@@ -278,7 +325,7 @@ class Hierarchy(QWidget):
         
 
 
-    def _find_item_by_gameobject(self, tree, gameobject):
+    def _find_item_by_gameobject(self, tree :SceneTreeWidget, gameobject):
         def traverse(item):
             if item.data(0, Qt.ItemDataRole.UserRole) == gameobject:
                 return item
@@ -295,11 +342,15 @@ class Hierarchy(QWidget):
         return None
 
     def _on_item_clicked(self, item: QTreeWidgetItem, column: int):
-        gameobject = item.data(0, Qt.ItemDataRole.UserRole)
-        if gameobject:
-            self.editor.set_selected_gameobject(gameobject)
-            
+        if item:
+            gameobject = item.data(0, Qt.ItemDataRole.UserRole)
+            if gameobject:
+                self.editor.set_selected_gameobject(gameobject)
+
     def _on_item_changed(self, item: QTreeWidgetItem, column: int):
-        gameobject = item.data(0, Qt.ItemDataRole.UserRole)
-        if gameobject:
-            gameobject.name = item.text(0)
+        if item:
+            gameobject = item.data(0, Qt.ItemDataRole.UserRole)
+            print(item)
+            if gameobject:
+                gameobject.name = item.text(0)
+            

@@ -16,10 +16,13 @@ class Engine:
         from .components import (
             Transform, RigidBody, BoxCollider, CircleCollider
             )
-        Serializer.register_component("Transform", Transform.to_dict, Transform.from_dict)
-        Serializer.register_component("RigidBody", RigidBody.to_dict, RigidBody.from_dict)
-        Serializer.register_component("BoxCollider", BoxCollider.to_dict, BoxCollider.from_dict)
-        Serializer.register_component("CircleCollider", CircleCollider.to_dict, CircleCollider.from_dict)
+        from .gui.components import (
+            TransformWidget, RigidBodyWidget, CircleColliderWidget, BoxColliderWidget
+        )
+        Serializer.register_component("Transform", Transform.to_dict, Transform.from_dict, TransformWidget)
+        Serializer.register_component("RigidBody", RigidBody.to_dict, RigidBody.from_dict, RigidBodyWidget)
+        Serializer.register_component("BoxCollider", BoxCollider.to_dict, BoxCollider.from_dict, BoxColliderWidget)
+        Serializer.register_component("CircleCollider", CircleCollider.to_dict, CircleCollider.from_dict, CircleColliderWidget)
         
 
     def start(self):

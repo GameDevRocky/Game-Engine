@@ -80,10 +80,10 @@ QPushButton:hover {
     color: #ffffff;
 }
 QTreeWidget::item {
-    padding: 2px 2px;
+    padding: 8px 8px;
     color: #eeeeee;
     background-color: #121212;
 }
 QTreeWidget::item:selected {
-    background-color: rgb(41, 41, 41);
+    background-color: rgb(59, 59, 59);
 }

@@ -148,3 +148,12 @@ QComboBox QAbstractItemView {
     selection-background-color: #007acc;
     border: 1px solid #3a3a3a;
 }
+
+QTreeWidget::item {
+    padding: 5px 5px;
+    color: #eeeeee;
+    background-color: #121212;
+}
+QTreeWidget::item:selected {
+    background-color: rgb(59, 59, 59);
+}
