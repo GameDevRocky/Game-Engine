@@ -4,10 +4,10 @@ from .component import Component
 from ..core import Field
 
 class Transform(Component):
+    
     def __init__(self, gameobject, position= [0,0], angle = 0, scale= [0, 0]):
         super().__init__(gameobject)
 
-        # Local transform data
         self.local_position = Field(Vector2(position), Vector2)
         self.local_scale = Field(Vector2(scale), Vector2)
         self.local_angle = Field(angle, float)  # in degrees
@@ -45,58 +45,54 @@ class Transform(Component):
         )
     
     def set_parent(self, new_transform, keep_world=True):
-        """Change the parent of this transform.
-        
-        Args:
-            new_transform: The new parent transform, or None to unparent
-            keep_world: If True, maintain world position/rotation/scale while changing parent
-        """
         if new_transform is self:
             raise ValueError("Cannot set a Transform as its own parent.")
 
-        # Remove from old parent's children
         if self.parent:
             self.parent.children.discard(self)
 
-        # Store world transform if keeping it
         if keep_world:
             world_matrix = self.get_world_matrix()
 
-        # Update parent reference
         self.parent = new_transform
-        
-        # Add to new parent's children if there is a new parent
+
         if new_transform:
             new_transform.children.add(self)
 
-        # Update transform matrices
         if keep_world:
             if self.parent:
-                # Calculate new local transform that maintains world transform
-                parent_world_inv = np.linalg.inv(self.parent.get_world_matrix())
+                parent_matrix = self.parent.get_world_matrix()
+                det = np.linalg.det(parent_matrix)
+                if abs(det) < 1e-8:
+                    parent_world_inv = np.eye(3)
+                else:
+                    parent_world_inv = np.linalg.inv(parent_matrix)
+
                 self._local_matrix = parent_world_inv @ world_matrix
-                
-                # Extract local transform values
+
+                # Decompose _local_matrix safely
                 self.local_position = Vector2(*self._local_matrix[:2, 2])
-                self.local_scale = Vector2(
-                    np.linalg.norm(self._local_matrix[0, :2]),
-                    np.linalg.norm(self._local_matrix[1, :2])
-                )
-                self.local_angle = np.degrees(np.arctan2(self._local_matrix[0,1], self._local_matrix[0,0]))
+
+                scale_x = np.linalg.norm(self._local_matrix[0, :2])
+                scale_y = np.linalg.norm(self._local_matrix[1, :2])
+                self.local_scale = Vector2(scale_x if scale_x > 1e-5 else 1.0,
+                                        scale_y if scale_y > 1e-5 else 1.0)
+
+                angle_rad = np.arctan2(self._local_matrix[0, 1], self._local_matrix[0, 0])
+                self.local_angle = np.degrees(angle_rad)
             else:
-                # When unparenting, local = world
                 self._local_matrix = world_matrix.copy()
                 self.local_position = Vector2(*world_matrix[:2, 2])
-                self.local_scale = Vector2(
-                    np.linalg.norm(world_matrix[0, :2]),
-                    np.linalg.norm(world_matrix[1, :2])
-                )
-                self.local_angle = np.degrees(np.arctan2(world_matrix[0,1], world_matrix[0,0]))
+                self.local_scale = Vector2(1.0, 1.0)
+                angle_rad = np.arctan2(world_matrix[0, 1], world_matrix[0, 0])
+                self.local_angle = np.degrees(angle_rad)
         else:
-            # Keep local transform as is, world will update on next access
+            # keep local transform as is
             pass
 
+        self.gameobject.notify()
         self._dirty = True
+
 
     def set_local_position(self, x, y):
         self.local_position.update(x, y)

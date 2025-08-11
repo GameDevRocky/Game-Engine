@@ -30,32 +30,6 @@ class SceneTreeWidget(QTreeWidget):
         self.setEditTriggers(QTreeWidget.EditTrigger.DoubleClicked | QTreeWidget.EditTrigger.SelectedClicked)
 
 
-
-    def mousePressEvent(self, event: QMouseEvent):
-        if event.button() == Qt.MouseButton.RightButton:
-            self.show_add_gameobject_menu(event.pos())
-        super().mousePressEvent(event)
-
-    def show_add_gameobject_menu(self, pos: QPoint):
-        global_pos = self.mapToGlobal(pos)
-        clicked_item = self.itemAt(pos)
-
-        menu = QMenu(self)
-        add_action = QAction("Add GameObject", self)
-        menu.addAction(add_action)
-
-        def handle_add():
-            from ...components import Transform
-            parent_go = None
-            if clicked_item:
-                parent_go = clicked_item.data(0, Qt.ItemDataRole.UserRole)
-            go = GameObject()
-            go.transform = Transform(go)
-            self.scene.add_gameobject(go, parent_go)
-
-        add_action.triggered.connect(handle_add)
-        menu.exec(global_pos)
-
     def is_descendant(self, possible_parent, item):
         while item:
             if item == possible_parent:

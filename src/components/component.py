@@ -1,10 +1,11 @@
-from abc import ABC, abstractmethod
+from ..core import Observable
 
-class Component(ABC):
+class Component(Observable):
     def __init__(self, gameobject):
         from ..core import GameObject
+        super().__init__()
         self.gameobject: GameObject = gameobject
-        self.enabled = False
+        self.enabled = True
 
     def awake(self): pass
     def start(self): pass

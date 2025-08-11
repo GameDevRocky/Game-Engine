@@ -17,17 +17,26 @@ class SceneManager(Observable):
         
         super().__init__()
         self.engine = engine
-        self.loaded_scenes = set()
+        self.loaded_scenes : list[Scene] = []
         self.active_scene = None
         self._initialized = True
-
-    def start(self):
+    
+    def initialize(self):
         scene = Serializer.load_from_yaml("assets\scenes\SampleScene.yaml", self.engine)
         self.add_scene(scene)
+        print(scene.id_mappings)
+
+    def start(self):
+        pass
+        
+
+    def destroy_all_gameobjects(self):
+        for scene in self.loaded_scenes:
+            scene.destroy_gameobjects()
         
     def add_scene(self, scene):
         from ...gui.widgets import Hierarchy
-        self.loaded_scenes.add(scene)
-        self.active_scene = scene
-        scene.subscribe(lambda: Hierarchy._instance.update_scene_widget(scene))
-        self.notify()
+        if scene not in self.loaded_scenes:
+            self.loaded_scenes.append(scene)
+            self.active_scene = scene
+            self.notify()

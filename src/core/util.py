@@ -112,24 +112,55 @@ class Field:
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
+
+
 class Observable(QObject):
+    # Normal Qt signal for direct usage (optional)
     updated = pyqtSignal()
+
+    # Global callback queue (shared by all Observable instances)
+    _callback_queue = set()
 
     def __init__(self):
         super().__init__()
+        self._subscribers = []  # store (callback, immediate)
 
-    def subscribe(self, callback):
-        self.updated.connect(callback)
+    def subscribe(self, callback, owner: QObject = None, immediate: bool = False):
+        """
+        Subscribe a callback.
+        - immediate=True → callback runs instantly when notify() is called.
+        - immediate=False → callback is queued for emit_all().
+        """
+        
+        self._subscribers.append((callback, immediate))
 
-    def unsubscribe(self, callback):
-        try:
-            self.updated.disconnect(callback)
-        except TypeError:
-            pass  # Already disconnected or never connected
+        if owner:
+            # Auto-remove subscriber when owner is deleted
+            owner.destroyed.connect(lambda: self._remove_subscriber(callback))
+
+    def _remove_subscriber(self, callback):
+        self._subscribers = [(cb, imm) for cb, imm in self._subscribers if cb != callback]
+    
+    def clear_subscribers(self):
+        self._subscribers.clear()
 
     def notify(self):
-        self.updated.emit()
+        """
+        Notify subscribers.
+        - Immediate subscribers are called right now.
+        - Deferred subscribers are queued for later emit_all().
+        """
+        for callback, immediate in self._subscribers:
+            if immediate:
+                callback()
+            else:
+                Observable._callback_queue.add(callback)
 
-    def clear_observers(self):
-        # No direct way to clear all slots, so you can recreate the signal by reassigning
-        self.updated = pyqtSignal()
+    @classmethod
+    def emit_all(cls):
+        """
+        Run all queued callbacks (in the order they were queued) and clear the queue.
+        """
+        while cls._callback_queue:
+            callback = cls._callback_queue.pop()
+            callback()

@@ -1,17 +1,7 @@
 import json
 import yaml
-
+from ...components import Component_Registry
 class Serializer:
-    _component_registry = {}
-
-    @classmethod
-    def register_component(cls, type_name, serializer_fn, deserializer_fn, component_widget):
-        cls._component_registry[type_name] = {
-            "serialize": serializer_fn,
-            "deserialize": deserializer_fn,
-            "widget" : component_widget
-        }
-
     @classmethod
     def serialize_scene(cls, scene):
         return {
@@ -23,6 +13,7 @@ class Serializer:
     def deserialize_scene(cls, data, engine):
         from ..scenes.scene import Scene
         scene = Scene(engine, data["name"])
+
         for go_data in data["gameObjects"]:
             go = cls._deserialize_gameobject(go_data)
             scene.add_gameobject(go)
@@ -44,6 +35,7 @@ class Serializer:
         gameobject = GameObject.from_dict(data)
         for comp_data in data.get("components", []):
             component = cls._deserialize_component(comp_data, gameobject= gameobject)
+
             gameobject.add_component(component)
         if transform := gameobject.get_component("Transform"):
             gameobject.transform = transform
@@ -52,9 +44,7 @@ class Serializer:
             print(f"Couldn't load {gameobject} from scene")
 
         if parent:
-            parent_transform = parent.get_component("Transform")
-            child_transform = gameobject.get_component("Transform")
-            child_transform.set_parent(parent_transform)
+            gameobject.set_parent(parent) 
         for child_data in data.get("children", []):
             child = cls._deserialize_gameobject(child_data, parent= gameobject)        
         return gameobject
@@ -62,18 +52,18 @@ class Serializer:
     @classmethod
     def _serialize_component(cls, component):
         type_name = type(component).__name__
-        if type_name not in cls._component_registry:
+        if type_name not in Component_Registry.registry:
             raise ValueError(f"Component type '{type_name}' not registered for serialization.")
         return {
             "type": type_name,
-            "data": cls._component_registry[type_name]["serialize"](component)
+            "data": Component_Registry.registry[type_name]["serialize"](component)
         }
 
     @classmethod
     def _deserialize_component(cls, data, gameobject):
         type_name = data["type"]
 
-        return cls._component_registry[type_name]["deserialize"](data, gameobject)
+        return Component_Registry.registry[type_name]["deserialize"](data, gameobject)
 
     @classmethod
     def save_to_yaml(cls, scene, path):

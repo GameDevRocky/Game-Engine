@@ -5,6 +5,7 @@ from src.editor import Editor
 
 engine = Engine()
 editor = Editor(engine)
+engine.initialize()
 engine.start()
 sys.exit(editor.gui_app.exec())
 

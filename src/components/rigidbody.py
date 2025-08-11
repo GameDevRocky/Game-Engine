@@ -27,6 +27,12 @@ class RigidBody(Component):
         transform : Transform = self.gameobject.get_component("Transform")
         transform.position = pygame.Vector2(*self.body.position)
         transform.angle = self.body.angle
+
+    @classmethod
+    def from_dict(cls, data, gameobject):
+        return cls(
+            gameobject
+        )
         
     
 

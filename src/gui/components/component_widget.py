@@ -1,48 +1,71 @@
 from PyQt6.QtWidgets import (
-    QGroupBox, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QCheckBox, QPushButton
+    QGroupBox, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QCheckBox, QPushButton, QSizePolicy
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
+from ...components import Component
+import inspect
 
-
-class ComponentWidget(QGroupBox):
+class ComponentWidget(QWidget):
     component_type = None
 
     def __init__(self, component):
         super().__init__()
+        self._component = component
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.layout.setContentsMargins(0,0,0,0)
 
-        self.component = component
-        self.setTitle(component.__class__.__name__)
-        self.setCheckable(True)
-        self.setChecked(True)  # Component is active by default
+        self.header = QWidget()
+        self.header_layout = QHBoxLayout()
+        self.header.setLayout(self.header_layout)
+        self.header.mousePressEvent = self.toggle_visibility
 
-        # Main layout
-        self.main_layout = QVBoxLayout()
-        self.setLayout(self.main_layout)
 
-        # Container for the component's editable content
+        self.enabled_cbx = QCheckBox()
+        self.enabled_cbx.setChecked(self.component.enabled)
+        self.enabled_cbx.toggled.connect(self.component.set_enabled)
+        self.header_layout.addWidget(self.enabled_cbx)
+        self.header.setStyleSheet("""
+            background-color : #2b2b2b
+            """)
+
+        self.name_label = QLabel(self.component.__class__.__name__)
+        self.header_layout.addWidget(self.name_label)
+        self.header_layout.addStretch()
+        self.header_layout.setContentsMargins(2,5,2,5)
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout()
+        self.content_layout.setSpacing(25)
         self.content_widget.setMinimumHeight(200)
+        self.content_layout.setContentsMargins(0,0,0,0)
         self.content_widget.setLayout(self.content_layout)
-        self.main_layout.addWidget(self.content_widget)
+        self.layout.addWidget(self.header)
+        self.layout.addWidget(self.content_widget)
 
-        # Track check state
-        self.toggled.connect(self._on_toggle)
+        self.component.subscribe(self.update, self)
+        self.inspect_component()
 
-        # Optional: Add remove button
-        remove_button = QPushButton("Remove")
-        remove_button.clicked.connect(self._on_remove)
-        self.main_layout.addWidget(remove_button)
+    @property
+    def component(self) -> Component | None:
+        return self._component()
+    
+    def set_enabled(self, enabled):
+        if self.component:
+            self.component.enabled = enabled
 
-    def add_content_widget(self, widget: QWidget):
-        """Add a widget to the internal content layout (e.g., component UI fields)"""
-        self.content_layout.addWidget(widget)
+    def update(self):
+        if self.component:
+            self.enabled_cbx.blockSignals(True)
+            self.enabled_cbx.setChecked(self.component.enabled)
+            self.enabled_cbx.blockSignals(False)
 
-    def _on_toggle(self, checked):
-        """Toggle visibility of the component's content"""
-        self.content_widget.setVisible(checked)
+    def toggle_visibility(self, event):
+        self.content_widget.setVisible(not self.content_widget.isVisible())
 
-    def _on_remove(self):
-        """Remove this widget from the UI cleanly"""
-        self.setParent(None)
-        self.deleteLater()
+    def inspect_component(self):
+        if self.component:
+            pass
+
+
+    

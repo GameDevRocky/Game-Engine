@@ -1,13 +1,20 @@
 from .util import Observable
+import uuid
 
 class GameObject(Observable):
-    def __init__(self, name= "GameObject", tag= "Default", active= True):
+    def __init__(self, name= "GameObject", tag= "Untagged", layer= "Default", active= True):
         super().__init__()
+        from ..components import Transform
+        from ..managers import LayerManager
+
         self._name = name
         self._tag = tag
+        self._layer = LayerManager.get_layer(layer)
         self._active = active
         self._components = {}
-        self.transform = None
+        self.transform = Transform(self)
+        self.add_component(self.transform)
+        self.id = uuid.uuid4()
 
     @property
     def name(self):
@@ -36,18 +43,39 @@ class GameObject(Observable):
     @active.setter
     def active(self, value: bool):
         self._active = value
-        for comp in self._components.values():
-            comp.set_enabled(value)
+        for child in self.children:
+            child.active = value
         self.notify()
+
+    @property
+    def layer(self):
+        return self._layer
+
+    @layer.setter
+    def layer(self, value):
+        from ..managers import Layer
+        from ..editor import Editor
+        assert type(value) is Layer, f"{value} is not of type Layer"
+        self._layer = value
+        self.notify()
+
 
     # --- Components ---
     @property
     def components(self):
         return self._components
+    
+    @property 
+    def parent(self):
+        return self.transform.parent.gameobject if self.transform.parent else None
 
-    # --- Component management ---
-    def add_component(self, component):
-        if type(component) in self._components:
+    @property
+    def children(self):
+        return [t.gameobject for t in self.transform.children]
+    # --- Component management --
+
+    def add_component(self, component, override = False):
+        if not override and type(component) in self._components:
             return self._components[type(component)]
 
         self._components[type(component)] = component
@@ -65,7 +93,9 @@ class GameObject(Observable):
             return self._components.get(component_type, None)
         
     def set_parent(self, gameobject : 'GameObject'):
-        self.transform.set_parent(gameobject.transform)
+        self.transform.set_parent(gameobject.transform if gameobject else None)
+        self.notify()
+
 
     def remove_component(self, component_type):
         comp = self._components.pop(component_type, None)
@@ -76,8 +106,17 @@ class GameObject(Observable):
         return False
 
     def destroy(self):
-        for comp in self._components.values():
+        for child in list(self.children):
+            child.destroy()
+
+        if self.parent:
+            self.parent.transform.children.remove(self.transform)
+            self.transform.parent = None
+
+        for comp in list(self._components.values()):
             comp.destroy()
+        self._components.clear()
+        self.notify()
 
     # --- Serialization ---
     def to_dict(self):

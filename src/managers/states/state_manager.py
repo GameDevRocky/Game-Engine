@@ -14,6 +14,13 @@ class StateManager:
         if self.current_state:
             self.current_state.update()
 
+        self.cleanup()
+
+    def cleanup(self):
+        from ...managers.scenes import SceneManager
+        SceneManager._instance.destroy_all_gameobjects()
+        pass
+
     def render(self):
         if self.current_state:
             self.current_state.render()

@@ -40,6 +40,15 @@ class BoxCollider(Collider):
         self.shape = shape
         return shape
     
+    @classmethod
+    def from_dict(cls, data, gameobject):
+        return cls(
+            gameobject
+        )
+        
+    
+
+    
 class CircleCollider(Collider):
     def __init__(self, gameobject):
         super().__init__(gameobject)
@@ -53,3 +62,11 @@ class CircleCollider(Collider):
         shape = pymunk.Circle(body, self.radius * scale, self.offset)
         self.shape = shape
         return shape
+
+    @classmethod
+    def from_dict(cls, data, gameobject):
+        return cls(
+            gameobject
+        )
+        
+    

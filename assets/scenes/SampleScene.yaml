@@ -7,6 +7,9 @@ gameObjects:
         position: [0, 0]
         angle: 0
         scale: [1, 1]
+      - type: "RigidBody"
+      - type: "BoxCollider"
+      - type: "CircleCollider"
     children:
       - name: "Child"
         active: true
