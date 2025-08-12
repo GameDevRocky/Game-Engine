@@ -111,6 +111,7 @@ class Editor(Observable):
 
     def update(self):
         self.inspector.update()
+        #self.hierarchy.update()
         self.scene_view.update()
         self.game_view.update()
         pass

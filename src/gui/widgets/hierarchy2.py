@@ -50,6 +50,7 @@ class SceneWidget(QWidget):
         super().__init__()
         self.scene = scene
         self.layout = QVBoxLayout(self)
+        self._dirty = True
 
         
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -90,9 +91,11 @@ class SceneWidget(QWidget):
         self.tree.clicked.connect(self.on_item_clicked)
         self.tree.dropEvent = self.model_drop_event
         self.tree.header().hide()
+        self.tree.setDragDropMode(QTreeView.DragDropMode.InternalMove)
+        self.tree.setDefaultDropAction(Qt.DropAction.LinkAction)
         self.tree.addAction("Add GameObject")
         self.layout.addWidget(self.tree)
-        self.scene.subscribe(self.handle_change, immediate= True, owner=self)
+        self.scene.subscribe(self.build, owner=self)
         
         self.delete_action = QAction("Delete GameObject", self)
         self.delete_action.setShortcut("Delete")
@@ -114,26 +117,43 @@ class SceneWidget(QWidget):
         target_item = self.tree.model().itemFromIndex(target_index) if target_index.isValid() else None
 
         selected_indexes = self.tree.selectedIndexes()
-        for index in selected_indexes:
-            source_item = self.tree.model().itemFromIndex(index) if selected_indexes else None
+        source_items = [self.tree.model().itemFromIndex(idx) for idx in selected_indexes if idx.isValid()]
+
+        # Process parent changes
+        if target_item:
+            target_id = target_item.data(Qt.ItemDataRole.UserRole)
+            target_go = self.scene.find_gameobject_by_id(target_id)
+        else:
+            target_go = None
+
+        for source_item in source_items:
+            if not source_item or source_item == target_item:
+                continue
+
             source_id = source_item.data(Qt.ItemDataRole.UserRole)
             source_go = self.scene.find_gameobject_by_id(source_id)
 
-            if not source_item or source_item == target_item:
-                continue
-            if not target_item:
-                source_go.set_parent(None)
-                super(type(self.tree), self.tree).dropEvent(event)
+            if not source_go:
                 continue
 
-            target_id = target_item.data(Qt.ItemDataRole.UserRole)
-            target_go = self.scene.find_gameobject_by_id(target_id)
-            if source_go and target_go and source_go != target_go:
-                source_go.set_parent(target_go)
+            # Set parent
+            source_go.set_parent(target_go)
 
-            super(type(self.tree), self.tree).dropEvent(event)
-                
+        
+        super(type(self.tree), self.tree).dropEvent(event)
         self.tree.expandAll()
+
+    def _rebuild_item_mappings(self, parent_item):
+        for row in range(parent_item.rowCount()):
+
+            item = parent_item.child(row)
+            print(item)
+            go_id = item.data(Qt.ItemDataRole.UserRole)
+
+            if go_id:
+                self.item_mappings[go_id] = weakref.ref(item)
+            self._rebuild_item_mappings(item)
+
 
     def remove_gameobject(self):
         indexes = self.tree.selectedIndexes()
@@ -154,7 +174,7 @@ class SceneWidget(QWidget):
         
 
 
-    def build_gameobject_item(self, gameobject):
+    def build_gameobject_item(self, gameobject : GameObject):
         
         item = QStandardItem(gameobject.name)
         item.setIcon(QIcon('assets\media\gameobject_icon.png'))
@@ -165,7 +185,7 @@ class SceneWidget(QWidget):
             item.setForeground(QBrush(QColor(120, 120, 120)))  # dark gray
         else:
             item.setForeground(QBrush(QColor(255, 255, 255)))
-        gameobject.subscribe(lambda: self.update_item(gameobject.id), owner= self)
+        gameobject.subscribe(lambda: self.update_item(gameobject.id))
         for child in gameobject.children:
             child_item = self.build_gameobject_item(child)
             item.appendRow(child_item)
@@ -176,21 +196,34 @@ class SceneWidget(QWidget):
     def update_item(self, id):
         gameobject: GameObject = self.scene.find_gameobject_by_id(id)
         item : QStandardItem = self.item_mappings.get(id)()
+
         if item and gameobject:
+            flags = item.flags()
+            item.setFlags(flags | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+
             item.setText(gameobject.name)
+            print("updating")
+            item.setData(QVariant(), Qt.ItemDataRole.ForegroundRole)  # Clear existing
             if not gameobject.active:
-                item.setForeground(QBrush(QColor(120, 120, 120)))  # dark gray
+                item.setForeground(QBrush(QColor(120, 120, 120)))
             else:
-                item.setForeground(QBrush(QColor(255, 255, 255)))  # white or default color
+                item.setForeground(QBrush(QColor(255, 255, 255)))
+
        
+    
+    def update(self):
+        return
 
     def build(self):
         self.model.clear()
         self.model.setHorizontalHeaderLabels([self.scene.name])
+        self.item_mappings.clear()
 
         for obj in self.scene.root_gamobjects:
             item = self.build_gameobject_item(obj)
             item.setEditable(True)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsDragEnabled | Qt.ItemFlag.ItemIsDropEnabled)
+
             self.model.appendRow(item)
         self.tree.expandAll()
 
@@ -288,7 +321,7 @@ class Hierarchy(QWidget):
         self.container.setLayout(self.container_layout)
         self.scroll_area.setWidget(self.container)
 
-        self.scene_widgets = []
+        self.scene_widgets : list[SceneWidget] = []
 
         self._initialized = True
 
@@ -301,7 +334,9 @@ class Hierarchy(QWidget):
 
     def start(self):
         self.build_scenes()
-
+    
+    def update(self):
+        return
     def add_scene(self):
         name, ok = QInputDialog.getText(self, "New Scene", "Enter scene name:")
         if ok and name:

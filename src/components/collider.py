@@ -13,7 +13,7 @@ class Collider(Component):
         self.friction = Field(0.5, float)
         self.elasticity = Field(0.0, float)
         self.sensor = Field(False, bool)        
-        self.shape = None                      
+        self.shape = None
 
     def create_shape(self, body):
         raise NotImplementedError
@@ -32,6 +32,7 @@ class BoxCollider(Collider):
         super().__init__(gameobject)
         self.width = Field(1.0, float)
         self.height = Field(1.0, float)
+        self.read_fields()
 
     def create_shape(self, body):
         from . import Transform
@@ -53,6 +54,8 @@ class CircleCollider(Collider):
     def __init__(self, gameobject):
         super().__init__(gameobject)
         self.radius = Field(1.0, float)
+        self.read_fields()
+
         
 
     def create_shape(self, body):

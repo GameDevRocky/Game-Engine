@@ -12,6 +12,7 @@ class RigidBody(Component):
         self.moment = Field(1.0, float)
         self.body_type = Field({"Static" : pymunk.Body.STATIC, "Kinematic" : pymunk.Body.KINEMATIC, "Dynamic": pymunk.Body.DYNAMIC}, Options)
         self.body = None
+        self.read_fields()
 
     def awake(self):
         self.body = pymunk.Body(self.mass, self.moment, self.body_type['Dynamic'])

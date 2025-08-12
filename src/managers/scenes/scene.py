@@ -45,7 +45,7 @@ class Scene(Observable):
 
     def add_gameobject(self, gameobject, parent= None):
         from ...core import GameObject
-        from ...components import Transform
+        from ...components import Transform, RigidBody
         parent : GameObject = parent
         gameobject : GameObject = gameobject
         gameobject.subscribe(self.restructure_root_objects)
@@ -56,9 +56,7 @@ class Scene(Observable):
             if gameobject not in self.root_gamobjects:
                 self.root_gamobjects.append(gameobject)
         else:
-            gameobject.set_parent(parent)
-
-        
+            gameobject.set_parent(parent)             
         self.notify()
 
     def remove_gameobject(self, gameobject):

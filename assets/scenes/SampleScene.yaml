@@ -1,7 +1,9 @@
 name: "SampleScene"
 gameObjects:
-  - name: "Parent"
+  - name: "Player"
     active: true
+    tag : "Player"
+    layer : "Default"
     components:
       - type: "Transform"
         position: [0, 0]
@@ -11,7 +13,7 @@ gameObjects:
       - type: "BoxCollider"
       - type: "CircleCollider"
     children:
-      - name: "Child"
+      - name: "Weapon Holder"
         active: true
         components:
           - type: "Transform"

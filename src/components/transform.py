@@ -10,7 +10,7 @@ class Transform(Component):
 
         self.local_position = Field(Vector2(position), Vector2)
         self.local_scale = Field(Vector2(scale), Vector2)
-        self.local_angle = Field(angle, float)  # in degrees
+        self.local_angle = Field(angle, float) # in degrees
 
         # World transform data
         self.world_position = Vector2(0, 0)
@@ -24,7 +24,9 @@ class Transform(Component):
         # Transformation matrices
         self._local_matrix = np.identity(3)
         self._world_matrix = np.identity(3)
-        self._dirty = True
+        self._dirty =True
+        self.mark_dirty()
+        self.read_fields()
 
     def to_dict(self):
         return {
@@ -91,33 +93,33 @@ class Transform(Component):
             pass
 
         self.gameobject.notify()
-        self._dirty = True
+        self.mark_dirty()
 
 
     def set_local_position(self, x, y):
         self.local_position.update(x, y)
-        self._dirty = True
+        self.mark_dirty()
 
     def translate(self, dx, dy):
         self.local_position += Vector2(dx, dy)
-        self._dirty = True
+        self.mark_dirty()
 
     def set_local_scale(self, sx, sy):
         self.local_scale.update(sx, sy)
-        self._dirty = True
+        self.mark_dirty()
 
     def scale_by(self, sx, sy):
         self.local_scale.x *= sx
         self.local_scale.y *= sy
-        self._dirty = True
+        self.mark_dirty()
 
     def set_local_angle(self, angle):
         self.local_angle = angle % 360
-        self._dirty = True
+        self.mark_dirty()
 
     def rotate(self, delta_angle):
         self.local_angle = (self.local_angle + delta_angle) % 360
-        self._dirty = True
+        self.mark_dirty()
 
     def _calculate_local_matrix(self):
         angle_rad = np.radians(self.local_angle)
@@ -196,7 +198,7 @@ class Transform(Component):
     @position.setter
     def position(self, value):
         self.local_position = Vector2(value)
-        self._dirty = True
+        self.mark_dirty()
 
     @property
     def scale(self):
@@ -206,7 +208,7 @@ class Transform(Component):
     @scale.setter
     def scale(self, value):
         self.local_scale = Vector2(value)
-        self._dirty = True
+        self.mark_dirty()
 
     @property
     def angle(self):
@@ -216,7 +218,14 @@ class Transform(Component):
     @angle.setter
     def angle(self, value):
         self.local_angle = value % 360
-        self._dirty = True
+        self.mark_dirty()
 
     def __repr__(self):
         return f"<Transform position={self.position} angle={self.angle} scale={self.scale}>"
+    
+
+    def mark_dirty(self):
+        if not self._dirty:
+            self._dirty = True
+            for child in self.children:
+                child.mark_dirty()

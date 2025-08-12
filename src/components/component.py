@@ -1,11 +1,22 @@
-from ..core import Observable
-
+from ..core import Observable, Field
+import inspect
 class Component(Observable):
     def __init__(self, gameobject):
         from ..core import GameObject
         super().__init__()
         self.gameobject: GameObject = gameobject
         self.enabled = True
+        self._fields = []
+
+    def read_fields(self):
+        import inspect
+        members = inspect.getmembers(self, lambda m: not inspect.isroutine(m))
+        self._fields += [(name, value) for name, value in members if isinstance(value, Field)]
+        self._fields = sorted(self._fields, key= lambda pair: pair[1].index)
+
+    @property
+    def fields(self):
+        return self._fields
 
     def awake(self): pass
     def start(self): pass
