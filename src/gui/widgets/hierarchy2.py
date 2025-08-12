@@ -20,6 +20,20 @@ class LargeLineEditDelegate(QStyledItemDelegate):
     
         return editor
     
+from PyQt6.QtCore import QMimeData, QByteArray
+
+class GameObjectModel(QStandardItemModel):
+    def mimeData(self, indexes):
+        mime_data = super().mimeData(indexes)
+        if indexes:
+            # Assume first selected index, get component ID
+            obj_id = indexes[0].data(Qt.ItemDataRole.UserRole)
+            if obj_id:
+                # Add your custom MIME data
+                mime_data.setData('application/x-component-ref', QByteArray(str(obj_id).encode('utf-8')))
+        return mime_data
+
+    
 class GameObjectTreeView(QTreeView):
     def __init__(self, scene : Scene, model, parent=None):
         super().__init__(parent)
@@ -34,7 +48,7 @@ class GameObjectTreeView(QTreeView):
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setDropIndicatorShown(True)
-        self.setDragDropMode(QTreeView.DragDropMode.InternalMove)
+        self.setDragDropMode(QTreeView.DragDropMode.DragDrop)
         self.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
         self.setStyleSheet('''
 
@@ -82,7 +96,7 @@ class SceneWidget(QWidget):
 
         self.layout.addWidget(self.header)
 
-        self.model = QStandardItemModel(self)
+        self.model = GameObjectModel(self)
         self.model.setHorizontalHeaderLabels([self.scene.name])
         
         self.model.itemChanged.connect(self.on_item_changed)
@@ -177,7 +191,7 @@ class SceneWidget(QWidget):
     def build_gameobject_item(self, gameobject : GameObject):
         
         item = QStandardItem(gameobject.name)
-        item.setIcon(QIcon('assets\media\gameobject_icon.png'))
+        item.setIcon(QIcon('src/media/gameobject_icon.png'))
         item.setEditable(True)
         item.setData(gameobject.id, Qt.ItemDataRole.UserRole)
         self.item_mappings[gameobject.id] = weakref.ref(item)

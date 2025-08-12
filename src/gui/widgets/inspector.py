@@ -101,18 +101,9 @@ class Inspector(QWidget):
         )
 
         self.gameobject.subscribe(self.update_fields, owner=self)
-
-        for comp_type, comp_instance in self.gameobject.components.items():
-            comp_name = comp_type.__name__
-            component_widget_cls = Component_Registry.registry[comp_name]['widget']
-            component_widget = component_widget_cls(weakref.ref(comp_instance))
-            self.content_layout.addWidget(component_widget)
-            self.component_widgets.add(component_widget)
-        
-        
+        self.gameobject.subscribe(self.build_components, owner= self)
+        self.build_components()
         self.content_widget.show()
-
-        # Unblock
         self.name_field.blockSignals(False)
         self.active_checkbox.blockSignals(False)
         self.tag_combo_box.blockSignals(False)
@@ -127,6 +118,17 @@ class Inspector(QWidget):
         for widget in self.component_widgets:
             widget.deleteLater()
         self.component_widgets.clear()
+
+    def build_components(self):
+        for widget in self.component_widgets:
+            widget.deleteLater()
+        self.component_widgets.clear()
+        for comp_type, comp_instance in self.gameobject.components.items():
+            comp_name = comp_type.__name__
+            component_widget_cls = Component_Registry.registry[comp_name]['widget']
+            component_widget = component_widget_cls(weakref.ref(comp_instance))
+            self.content_layout.addWidget(component_widget)
+            self.component_widgets.add(component_widget)        
 
 
     def set_active(self, checked: bool):

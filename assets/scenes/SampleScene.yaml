@@ -6,18 +6,20 @@ gameObjects:
     layer : "Default"
     components:
       - type: "Transform"
+        enabled : true
         position: [0, 0]
-        angle: 0
-        scale: [1, 1]
+        angle: 37.5
+        scale: [1, 10]
       - type: "RigidBody"
       - type: "BoxCollider"
       - type: "CircleCollider"
+      - type: "Test_Component"
     children:
       - name: "Weapon Holder"
         active: true
         components:
           - type: "Transform"
-            position: [1, 0]
+            position: [0, 0]
             angle: 0
             scale: [1, 1]
         children: []

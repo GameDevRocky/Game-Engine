@@ -16,15 +16,16 @@ class Engine:
 
     def register_components(self):
         from .components import (
-            Transform, RigidBody, BoxCollider, CircleCollider
+            Transform, RigidBody, BoxCollider, CircleCollider, Test_Component
             )
         from .gui.components import (
-            TransformWidget, RigidBodyWidget, CircleColliderWidget, BoxColliderWidget
+            TransformWidget, RigidBodyWidget, CircleColliderWidget, BoxColliderWidget, ComponentWidget
         )
         Component_Registry.register_component("Transform", Transform.to_dict, Transform.from_dict, TransformWidget)
         Component_Registry.register_component("RigidBody", RigidBody.to_dict, RigidBody.from_dict, RigidBodyWidget)
         Component_Registry.register_component("BoxCollider", BoxCollider.to_dict, BoxCollider.from_dict, BoxColliderWidget)
         Component_Registry.register_component("CircleCollider", CircleCollider.to_dict, CircleCollider.from_dict, CircleColliderWidget)
+        Component_Registry.register_component("Test_Component", Test_Component.to_dict, Test_Component.from_dict, ComponentWidget)
     
     def register_layers(self):
         LayerManager.add_layer("UI")

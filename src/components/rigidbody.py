@@ -6,8 +6,8 @@ from ..core import Options
 
 class RigidBody(Component):
     from ..core import GameObject
-    def __init__(self, gameobject):
-        super().__init__(gameobject)
+    def __init__(self, gameobject, enabled= True):
+        super().__init__(gameobject, enabled)
         self.mass = Field(1.0, float)
         self.moment = Field(1.0, float)
         self.body_type = Field({"Static" : pymunk.Body.STATIC, "Kinematic" : pymunk.Body.KINEMATIC, "Dynamic": pymunk.Body.DYNAMIC}, Options)

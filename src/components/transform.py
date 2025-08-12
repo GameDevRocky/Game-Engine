@@ -1,12 +1,12 @@
 import numpy as np
-from pygame.math import Vector2
+from pygame import Vector2
 from .component import Component
 from ..core import Field
 
 class Transform(Component):
     
-    def __init__(self, gameobject, position= [0,0], angle = 0, scale= [0, 0]):
-        super().__init__(gameobject)
+    def __init__(self, gameobject, enabled= True, position= [0,0], angle = 0, scale= [0, 0]):
+        super().__init__(gameobject, enabled)
 
         self.local_position = Field(Vector2(position), Vector2)
         self.local_scale = Field(Vector2(scale), Vector2)
@@ -38,11 +38,14 @@ class Transform(Component):
     @classmethod
     def from_dict(cls, data, gameobject):
         position = data.get("position", [0, 0])
+        enabled = data.get("enabled", True)
         scale = data.get("scale", [1, 1])
+        angle = data.get("angle", 0)
         return cls(
             gameobject,
+            enabled = enabled,
             position=position,
-            angle=data.get("rotation", 0),
+            angle=angle,
             scale=scale
         )
     

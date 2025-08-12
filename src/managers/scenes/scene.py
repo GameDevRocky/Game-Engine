@@ -9,7 +9,7 @@ class Scene(Observable):
         self._dirty = False
         self.root_gamobjects = []
         self.removed_gameobjects = set()
-        self.id_mappings = {}
+        self.id_mappings : dict[str, GameObject] = {}
         self._name = name
         self.path = path
         from weakref import proxy

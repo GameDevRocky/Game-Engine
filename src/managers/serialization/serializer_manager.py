@@ -36,7 +36,7 @@ class Serializer:
         for comp_data in data.get("components", []):
             component = cls._deserialize_component(comp_data, gameobject= gameobject)
 
-            gameobject.add_component(component)
+            gameobject.add_component(component, override= True)
         if transform := gameobject.get_component("Transform"):
             gameobject.transform = transform
         else:

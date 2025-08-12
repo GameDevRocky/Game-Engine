@@ -1,11 +1,11 @@
 from ..core import Observable, Field
 import inspect
 class Component(Observable):
-    def __init__(self, gameobject):
+    def __init__(self, gameobject, enabled= True):
         from ..core import GameObject
         super().__init__()
         self.gameobject: GameObject = gameobject
-        self.enabled = True
+        self._enabled = enabled
         self._fields = []
 
     def read_fields(self):
@@ -13,6 +13,16 @@ class Component(Observable):
         members = inspect.getmembers(self, lambda m: not inspect.isroutine(m))
         self._fields += [(name, value) for name, value in members if isinstance(value, Field)]
         self._fields = sorted(self._fields, key= lambda pair: pair[1].index)
+
+    @property
+    def enabled(self) -> bool:
+        return self._enabled
+    
+    @enabled.setter
+    def enabled(self, value):
+        self._enabled = value
+        self.notify()
+
 
     @property
     def fields(self):

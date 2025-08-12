@@ -1,5 +1,7 @@
 from .util import Observable
 import uuid
+import asyncio
+from PyQt6.QtCore import QTimer
 
 class GameObject(Observable):
     def __init__(self, name= "GameObject", tag= "Untagged", layer= "Default", active= True):
@@ -14,7 +16,7 @@ class GameObject(Observable):
         self._components = {}
         self.transform = Transform(self)
         self.add_component(self.transform)
-        self.id = uuid.uuid4()
+        self.id = str(uuid.uuid4())
 
     @property
     def name(self):
@@ -77,7 +79,7 @@ class GameObject(Observable):
     def add_component(self, component, override = False):
         if not override and type(component) in self._components:
             return self._components[type(component)]
-
+        self.remove_component(type(component))
         self._components[type(component)] = component
         component.awake()
         self.notify()
@@ -98,6 +100,8 @@ class GameObject(Observable):
 
 
     def remove_component(self, component_type):
+        component_type = type(self.get_component(component_type))
+
         comp = self._components.pop(component_type, None)
         if comp:
             comp.destroy()

@@ -6,8 +6,8 @@ import pymunk
 
 class Collider(Component):
 
-    def __init__(self, gameobject):
-        super().__init__(gameobject)
+    def __init__(self, gameobject, enabled= True):
+        super().__init__(gameobject, enabled)
         self.offset = Field((0.0, 0.0), tuple)  
         self.density = Field(1.0, float)       
         self.friction = Field(0.5, float)
@@ -28,8 +28,8 @@ class Collider(Component):
             self.create_shape(None)
         
 class BoxCollider(Collider):
-    def __init__(self, gameobject):
-        super().__init__(gameobject)
+    def __init__(self, gameobject, enabled= True):
+        super().__init__(gameobject, enabled)
         self.width = Field(1.0, float)
         self.height = Field(1.0, float)
         self.read_fields()
@@ -51,8 +51,8 @@ class BoxCollider(Collider):
 
     
 class CircleCollider(Collider):
-    def __init__(self, gameobject):
-        super().__init__(gameobject)
+    def __init__(self, gameobject, enabled= True):
+        super().__init__(gameobject, enabled)
         self.radius = Field(1.0, float)
         self.read_fields()
 
