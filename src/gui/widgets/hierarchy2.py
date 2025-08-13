@@ -5,11 +5,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QAction, QStandardItemModel, QStandardItem, QIcon, QBrush, QColor
 from PyQt6.QtCore import Qt, QModelIndex, QSize
 
-from ...core import GameObject
+from ...core.gameobject import GameObject
 from ...managers.scenes import Scene
 
 from PyQt6.QtCore import QAbstractItemModel, Qt, QModelIndex, QVariant, pyqtSignal
-
+from .icon_manager import IconManager
 import weakref
 
 
@@ -42,8 +42,9 @@ class GameObjectTreeView(QTreeView):
         self.setMinimumHeight(400)
         self.setItemDelegate(LargeLineEditDelegate(self))
         self.setUniformRowHeights(True)  # Allows per-item sizing
-        self.setIconSize(QSize(18, 18))   # Affects row height
-        self.setIndentation(20)
+        self.setIconSize(QSize(16, 16))   # Affects row height
+        self.setIndentation(16)
+        self.setContentsMargins(4,0,0,0)
         self.setEditTriggers(QTreeView.EditTrigger.DoubleClicked | QTreeView.EditTrigger.SelectedClicked)
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
@@ -51,9 +52,7 @@ class GameObjectTreeView(QTreeView):
         self.setDragDropMode(QTreeView.DragDropMode.DragDrop)
         self.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
         self.setStyleSheet('''
-
             border-width : 0px;
-
             ''')
 
 
@@ -81,13 +80,21 @@ class SceneWidget(QWidget):
             
             """)
         self.header_layout = QHBoxLayout(self.header)
+        scene_icon = IconManager._instance.get_icon("scene")
+        icon_btn = QPushButton()
+        icon_btn.setIcon(scene_icon)
+        icon_btn.setIconSize(QSize(16,16))
+        self.header_layout.addWidget(icon_btn)
+        self.header_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.header_layout.setSpacing(0)
+
         self.header_layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.layout.setContentsMargins(0,0,0,0)
-        self.header.setFixedHeight(32)
         
         self.scene_name_label = QLabel(self.scene.name)
         self.header_layout.addWidget(self.scene_name_label)
+        self.header_layout.addStretch()
 
         self.add_go_btn = QPushButton("+")
         self.add_go_btn.setFixedSize(24, 24)
@@ -151,7 +158,7 @@ class SceneWidget(QWidget):
                 continue
 
             # Set parent
-            source_go.set_parent(target_go)
+            source_go.parent = target_go
 
         
         super(type(self.tree), self.tree).dropEvent(event)
@@ -233,7 +240,7 @@ class SceneWidget(QWidget):
         self.model.setHorizontalHeaderLabels([self.scene.name])
         self.item_mappings.clear()
 
-        for obj in self.scene.root_gamobjects:
+        for obj in self.scene.root_gameobjects:
             item = self.build_gameobject_item(obj)
             item.setEditable(True)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsDragEnabled | Qt.ItemFlag.ItemIsDropEnabled)
@@ -245,7 +252,7 @@ class SceneWidget(QWidget):
         self.build()
 
     def add_gameobject(self):
-        new_go = GameObject("GameObject")
+        new_go = GameObject(name= "GameObject")
         self.scene.add_gameobject(new_go)
         self.tree.setVisible(True)
 
@@ -391,7 +398,7 @@ class Hierarchy(QWidget):
     def add_scene(self):
         name, ok = QInputDialog.getText(self, "New Scene", "Enter scene name:")
         if ok and name:
-            scene = Scene(self.engine, name)
+            scene = Scene(**{name: name})
             self.engine.scene_manager.add_scene(scene)
             self.build_scenes()
 

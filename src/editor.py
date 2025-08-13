@@ -1,6 +1,8 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QTextEdit, QTabWidget, QDockWidget
-from .gui.widgets import MainWindow, Console, Inspector, Hierarchy, SceneView, GameView, ProjectExplorer
+from PyQt6.QtGui import QIcon
+from .gui.widgets import (MainWindow, Console, Inspector, Hierarchy, SceneView,
+                           GameView, ProjectExplorer, IconManager)
 from PyQt6.QtCore import Qt
 from .core import Observable
 import weakref
@@ -46,6 +48,7 @@ class Editor(Observable):
     def create_gui(self):
         self.gui_app = QApplication(sys.argv)
         self.main_window = MainWindow(self)
+        self.icon_manager = IconManager()
 
         self.center_dock = QTabWidget()
         self.hierarchy_dock = QDockWidget("Hierarchy")
@@ -101,7 +104,18 @@ class Editor(Observable):
 
     def start(self):
         self.subscribe_widgets()
+        self.register_icons()
         self.hierarchy.start()
+    
+    def register_icons(self):
+        IconManager._instance.add_icon("menu", QIcon("src/media/menu_icon.png"))
+        IconManager._instance.add_icon("bullet point", QIcon("src/media/bullet_point_icon.png"))
+        IconManager._instance.add_icon("scene", QIcon("src/media/scene_icon.png"))
+        IconManager._instance.add_icon("transform", QIcon("src/media/transform_icon.png"))
+        IconManager._instance.add_icon("inspector", QIcon("src/media/inspector_icon.png"))
+        IconManager._instance.add_icon("gameobject", QIcon("src/media/gameobject_icon.png"))
+        
+
 
     def subscribe_widgets(self):
         self.subscribe(self.inspector.rebuild)

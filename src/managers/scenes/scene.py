@@ -1,50 +1,37 @@
-from ...core import Observable
-class Scene(Observable):
-    def __init__(self, engine, name= "Untitled", path= "assets/scenes"):
-        from ...core import GameObject
+from __future__ import annotations
+from ..serialization.serializable import Serializable
+from ..serialization.util import SerializeField
+
+class Scene(Serializable):
+    _instance_count = 0
+    
+    @SerializeField(default= lambda : f"Untitled {Scene._instance_count} ", type_hint= str)
+    def name(self) -> str | None: pass
+
+    @SerializeField(default=[], type_hint= list)
+    def root_gameobjects(self) -> list['GameObject'] | None : pass
+
+    def __init__(self, **kwargs):
+        from ...core.gameobject import GameObject
         from ...components import Transform
-        super().__init__()
-        self.saved = False
-        self.loaded = False
-        self._dirty = False
-        self.root_gamobjects = []
+        super().__init__(**kwargs)
         self.removed_gameobjects = set()
         self.id_mappings : dict[str, GameObject] = {}
-        self._name = name
-        self.path = path
-        from weakref import proxy
-        self.engine = proxy(engine) if engine is not None else None
-
-    @property
-    def name(self):
-        return self._name
-    
-    @name.setter
-    def name(self, name):
-        self._name = name
-        self.notify()
-
-    @property
-    def dirty(self):
-        return self._dirty
-    
-    @dirty.setter
-    def dirty(self, dirty):
-        self._dirty = dirty
-        self.notify()
+        self.path = "assets/scenes"
+        self.engine = None
+        Scene._instance_count += 1
 
     def find_gameobject_by_id(self, id):
-        return self.id_mappings[id]
-        return self.id_mappings.get(id, None)
-    
+        return self.id_mappings[id]    
 
     def register_object_recursive(self, obj):
             self.id_mappings[obj.id] = obj
+            obj.scene = self
             for child in obj.children:
                 self.register_object_recursive(child)
 
     def add_gameobject(self, gameobject, parent= None):
-        from ...core import GameObject
+        from ...core.gameobject import GameObject
         from ...components import Transform, RigidBody
         parent : GameObject = parent
         gameobject : GameObject = gameobject
@@ -52,11 +39,11 @@ class Scene(Observable):
         self.register_object_recursive(gameobject)
 
         if not parent:    
-            gameobject.set_parent(None)
-            if gameobject not in self.root_gamobjects:
-                self.root_gamobjects.append(gameobject)
+            gameobject.parent = None
+            if gameobject not in self.root_gameobjects:
+                self.root_gameobjects.append(gameobject)
         else:
-            gameobject.set_parent(parent)             
+            gameobject = parent            
         self.notify()
 
     def remove_gameobject(self, gameobject):
@@ -80,37 +67,34 @@ class Scene(Observable):
 
                 recursive_remove(gameobject)  # <-- call recursive removal of id mappings
 
-                if gameobject in self.root_gamobjects:
-                    self.root_gamobjects.remove(gameobject)
+                if gameobject in self.root_gameobjects:
+                    self.root_gameobjects.remove(gameobject)
 
             self.removed_gameobjects.clear()
 
             self.notify()
 
-        
-
     def restructure_root_objects(self):
         for obj in self.id_mappings.values():
             if obj.parent == None:
-                if obj not in self.root_gamobjects:
-                    self.root_gamobjects.append(obj)
-                    
+                if obj not in self.root_gameobjects:
+                    self.root_gameobjects.append(obj)
 
-        for obj in list(self.root_gamobjects):
+        for obj in list(self.root_gameobjects):
             if obj.parent:
-                self.root_gamobjects.remove(obj)
+                self.root_gameobjects.remove(obj)
 
     def to_dict(self):
         return {
-            "name": self._name,
-            "gameObjects": [go.to_dict() for go in self.root_gameobjects]
+            "name": self.name,
+            "gameobjects": [go.to_dict() for go in self.root_gameobjects]
         }
 
     @classmethod
-    def from_dict(cls, data, engine):
-        from ...core import GameObject
-        scene = cls(engine=engine, name=data["name"])
-        for go_data in data.get("gameObjects", []):
-            go = GameObject.from_dict(go_data, scene=scene)
-            scene.add_root_gameobject(go)
+    def from_dict(cls, **kwargs):
+        from ...core.gameobject import GameObject
+        scene : Scene = cls(**kwargs)
+        for go_data in kwargs.get("gameobjects", []):
+            go = GameObject.from_dict(**go_data)
+            scene.add_gameobject(go)
         return scene

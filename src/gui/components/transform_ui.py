@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from ...components import Transform
 from .component_widget import ComponentWidget
+from ..widgets import IconManager
 
 
 class TransformWidget(ComponentWidget):
@@ -12,4 +13,6 @@ class TransformWidget(ComponentWidget):
 
     def __init__(self, component: Transform):
         super().__init__(component)
+        self.icon_btn.setIcon(IconManager._instance.get_icon("transform"))
+        self.icon_btn.show()
         

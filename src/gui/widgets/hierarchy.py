@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QAction, QMouseEvent, QIcon
-from ...core import GameObject
+from ...core.gameobject import GameObject
 from ...managers.scenes import Scene
 
 from PyQt6.QtWidgets import QStyledItemDelegate, QLineEdit

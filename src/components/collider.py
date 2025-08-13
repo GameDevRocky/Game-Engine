@@ -1,5 +1,4 @@
 from .component import Component
-from ..core import Field
 from ..core import Options
 import pymunk
 
@@ -8,11 +7,11 @@ class Collider(Component):
 
     def __init__(self, gameobject, enabled= True):
         super().__init__(gameobject, enabled)
-        self.offset = Field((0.0, 0.0), tuple)  
-        self.density = Field(1.0, float)       
-        self.friction = Field(0.5, float)
-        self.elasticity = Field(0.0, float)
-        self.sensor = Field(False, bool)        
+        self.offset = (0.0, 0.0)
+        self.density = 1 
+        self.friction = 0
+        self.elasticity = 0
+        self.sensor = False
         self.shape = None
 
     def create_shape(self, body):
@@ -30,9 +29,8 @@ class Collider(Component):
 class BoxCollider(Collider):
     def __init__(self, gameobject, enabled= True):
         super().__init__(gameobject, enabled)
-        self.width = Field(1.0, float)
-        self.height = Field(1.0, float)
-        self.read_fields()
+        self.width = 1.0
+        self.height = 1.0
 
     def create_shape(self, body):
         from . import Transform
@@ -53,10 +51,7 @@ class BoxCollider(Collider):
 class CircleCollider(Collider):
     def __init__(self, gameobject, enabled= True):
         super().__init__(gameobject, enabled)
-        self.radius = Field(1.0, float)
-        self.read_fields()
-
-        
+        self.radius = 1.0
 
     def create_shape(self, body):
         from . import Transform

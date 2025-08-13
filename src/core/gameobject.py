@@ -1,80 +1,87 @@
+from __future__ import annotations
 from .util import Observable
 import uuid
 import asyncio
 from PyQt6.QtCore import QTimer
+from src.managers.serialization.util import SerializeField
+from src.managers.serialization.serializable import Serializable
+from ..components import Component_Registry
+from  ..managers import Layer, LayerManager
+class GameObject(Serializable):
 
-class GameObject(Observable):
-    def __init__(self, name= "GameObject", tag= "Untagged", layer= "Default", active= True):
-        super().__init__()
+    def layer_setter(self, layer):
+        from ..managers import LayerManager
+        self._layer = LayerManager.get_layer(layer)
+        self.notify()
+
+    def transform_setter(self, transform):
+        self._transform = transform
+        self.add_component(transform, override= True)
+
+    def transform_getter(self):
+        return self.get_component("Transform")
+
+    def parent_setter(self, parent):
+        if self.transform:
+            if parent:
+                self.transform.parent = parent.transform
+            else:
+                self.transform.parent = None
+        self._parent = parent
+        self.notify()
+
+    def active_setter(self, active):
+        self._active = active
+        self.notify()
+        for child in self.children:
+            child.active = active
+
+    def children_getter(self):
+        if self.transform:
+            return [t.gameobject for t in self.transform.children]
+        return []
+
+    def children_setter(self, v):
+        return
+    
+    @SerializeField(default= "GameObject", type_hint= str)
+    def name(self): pass
+
+    @SerializeField(default= "Untagged", type_hint= str)
+    def tag(self): pass
+
+    @SerializeField(default= LayerManager.default , type_hint= Layer, setter=layer_setter)
+    def layer(self) : pass
+
+    @SerializeField(default=True, type_hint=bool, setter= active_setter)
+    def active(self): pass
+
+    @SerializeField(default=lambda : {}, type_hint=dict)
+    def components(self): pass
+
+    @SerializeField(default= None, setter= transform_setter, getter= transform_getter, type_hint= "Transform")  
+    def transform(self): pass  
+
+    @SerializeField(default= lambda : str(uuid.uuid4()), type_hint=str, hide= True)
+    def id(self): pass
+
+    @SerializeField(default= None, setter=parent_setter, type_hint= Serializable)
+    def parent(self):pass
+
+    @SerializeField(default= None, setter=children_setter, getter=children_getter,  type_hint= list["GameObject"])
+    def children(self):pass
+
+    @SerializeField(default=None, type_hint= 'Scene')
+    def scene(self): pass
+
+    def __init__(self, **kwargs):
         from ..components import Transform
         from ..managers import LayerManager
-
-        self._name = name
-        self._tag = tag
-        self._layer = LayerManager.get_layer(layer)
-        self._active = active
+        super().__init__(**kwargs)
+        self.layer = LayerManager.get_layer(self.layer)
         self._components = {}
+        self._destroyed = False
         self.transform = Transform(self)
-        self.add_component(self.transform)
-        self.id = str(uuid.uuid4())
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        self._name = value
-        
-        self.notify()
-
-    @property
-    def tag(self):
-        return self._tag
-
-    @tag.setter
-    def tag(self, value):
-        self._tag = value
-        self.notify()
-
-    # --- Active ---
-    @property
-    def active(self):
-        return self._active
-
-    @active.setter
-    def active(self, value: bool):
-        self._active = value
-        for child in self.children:
-            child.active = value
-        self.notify()
-
-    @property
-    def layer(self):
-        return self._layer
-
-    @layer.setter
-    def layer(self, value):
-        from ..managers import Layer
-        from ..editor import Editor
-        assert type(value) is Layer, f"{value} is not of type Layer"
-        self._layer = value
-        self.notify()
-
-
-    # --- Components ---
-    @property
-    def components(self):
-        return self._components
-    
-    @property 
-    def parent(self):
-        return self.transform.parent.gameobject if self.transform.parent else None
-
-    @property
-    def children(self):
-        return [t.gameobject for t in self.transform.children]
-    # --- Component management --
 
     def add_component(self, component, override = False):
         if not override and type(component) in self._components:
@@ -93,11 +100,6 @@ class GameObject(Observable):
             return None
         else:
             return self._components.get(component_type, None)
-        
-    def set_parent(self, gameobject : 'GameObject'):
-        self.transform.set_parent(gameobject.transform if gameobject else None)
-        self.notify()
-
 
     def remove_component(self, component_type):
         component_type = type(self.get_component(component_type))
@@ -110,24 +112,41 @@ class GameObject(Observable):
         return False
 
     def destroy(self):
+        if getattr(self, "_destroyed", False):
+            return
+        self._destroyed = True
+
+        # Destroy children first
         for child in list(self.children):
             child.destroy()
+        self.children.clear()
 
+        # Remove from parent's hierarchy
         if self.parent:
-            self.parent.transform.children.remove(self.transform)
+            if self in getattr(self.parent, "children", []):
+                self.parent.children.remove(self)
+            if self.parent.transform and self.transform in self.parent.transform.children:
+                self.parent.transform.children.remove(self.transform)
+
+        # Break transform links
+        if self.transform:
             self.transform.parent = None
 
+        # Destroy all components
         for comp in list(self._components.values()):
             comp.destroy()
+            if hasattr(comp, "game_object"):
+                comp.game_object = None
         self._components.clear()
+
+        # Final notification
         self.notify()
 
-    # --- Serialization ---
+
     def to_dict(self):
-        # Store only serializable data
         component_data = []
-        for comp in self._components.values():
-            if hasattr(comp, 'to_dict'):
+        for comp in self.components.values():
+            if comp.to_dict:
                 component_data.append({
                     'type': comp.__class__.__name__,
                     'data': comp.to_dict()
@@ -136,15 +155,21 @@ class GameObject(Observable):
             "name": self.name,
             "tag": self.tag,
             "active": self.active,
-            "components": component_data
+            "components": component_data,
+            "children": [child.to_dict() for child in self.children]
         }
 
     @classmethod
-    def from_dict(cls, data):
-        # Create base object
-        go = cls(
-            name=data.get("name", "GameObject"), 
-            tag=data.get("tag", "Default"), 
-            active=data.get("active", True)
-            )
+    def from_dict(cls, **kwargs):
+        go = cls(**kwargs)
+        for comp_data in kwargs.get("components", []):
+            comp_type = comp_data["type"]
+            comp_cls = Component_Registry.registry.get(comp_type).get("class")  # you'll need a registry
+            if comp_cls:
+                comp = comp_cls.from_dict(go, **comp_data)
+                go.add_component(comp)
+        for child_data in kwargs.get("children", []):
+            child = cls.from_dict(**child_data)
+            child.parent = go
+            go.children.append(child)
         return go

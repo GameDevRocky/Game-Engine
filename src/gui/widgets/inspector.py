@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QAction 
 from PyQt6.QtCore import Qt, QSize
-from ...core import GameObject
+from ...core.gameobject import GameObject
 import weakref
 from ...components import Component_Registry
 from ...managers import LayerManager
@@ -29,6 +29,7 @@ class Inspector(QWidget):
 
         self.content_layout = QVBoxLayout()
         self.content_widget.setLayout(self.content_layout)
+        
 
         self.header = QWidget(self)
         self.header_layout = QHBoxLayout()
@@ -38,6 +39,7 @@ class Inspector(QWidget):
         self.active_checkbox = QCheckBox()
         self.content_layout.setSpacing(0)    
         self.header_layout.setContentsMargins(0,0,0,0)    
+        self.layout.setContentsMargins(0,0,0,0)    
         self.header_layout.addWidget(self.active_checkbox)
         self.header_layout.addWidget(self.name_field)
         self.content_layout.addWidget(self.header)
@@ -55,7 +57,7 @@ class Inspector(QWidget):
         self.layer_combo_box = QComboBox()
         self.layer_combo_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         self.tag_combo_box.addItems(["Default", "Player", "Camera", "UI"])
-        LayerManager.observer.subscribe(self.reset_layer_items, owner= self)
+        LayerManager.subscribe(self.reset_layer_items, owner= self)
         self.second_header_layout.addWidget(self.tag_label)
         self.second_header_layout.addWidget(self.tag_combo_box)
         self.second_header_layout.addWidget(self.layer_label)
@@ -83,7 +85,6 @@ class Inspector(QWidget):
         return self.editor.selected_gameobject
     
     def rebuild(self):
-        print("rebuilding" , self.gameobject)
         self.name_field.blockSignals(True)
         self.active_checkbox.blockSignals(True)
         self.tag_combo_box.blockSignals(True)
@@ -95,11 +96,10 @@ class Inspector(QWidget):
         self.name_field.setText(self.gameobject.name)
         self.active_checkbox.setChecked(self.gameobject.active)
         self.tag_combo_box.setCurrentText(self.gameobject.tag)
-        index = self.layer_combo_box.findData(self.gameobject.layer)
-        self.layer_combo_box.setCurrentIndex(
-        index
-        )
 
+        index = self.layer_combo_box.findData(self.gameobject.layer)
+        self.layer_combo_box.setCurrentIndex(index)
+        
         self.gameobject.subscribe(self.update_fields, owner=self)
         self.gameobject.subscribe(self.build_components, owner= self)
         self.build_components()
@@ -114,6 +114,7 @@ class Inspector(QWidget):
         self.active_checkbox.setChecked(False)
         self.content_widget.hide()
         self.tag_combo_box.setCurrentIndex(0)
+        self.reset_layer_items()
         self.layer_combo_box.setCurrentIndex(0)
         for widget in self.component_widgets:
             widget.deleteLater()
@@ -148,15 +149,16 @@ class Inspector(QWidget):
         from ...editor import Editor
 
         if self.gameobject:
-            new_layer = self.layer_combo_box.currentData()
+            new_layer = self.layer_combo_box.currentText()
             if not new_layer:
+                print("No New Layer")
                 return
 
             # Ask the user
             msg_box = QMessageBox(Editor._instance.main_window)
             msg_box.setWindowTitle("Change Layer")
             msg_box.setText(
-                f"Do you want to change the layer to '{new_layer.name}' "
+                f"Do you want to change the layer to '{new_layer}' "
                 "for this object only or for this object and its children?"
             )
             change_this = msg_box.addButton("This Object", QMessageBox.ButtonRole.AcceptRole)
@@ -201,7 +203,7 @@ class Inspector(QWidget):
             self.tag_combo_box.setCurrentText(self.gameobject.tag)
             index = self.layer_combo_box.findData(self.gameobject.layer)
             self.layer_combo_box.setCurrentIndex(
-            index
+            index if index > 0 else 0
             )
 
         self.name_field.blockSignals(False)

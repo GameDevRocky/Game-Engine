@@ -6,10 +6,10 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QAction, QMouseEvent, QIcon
-from ...core import GameObject
+from ...core.gameobject import GameObject
 from ...managers.scenes import Scene
 from PyQt6.QtWidgets import QStyledItemDelegate, QLineEdit
-from ...core import Field, format_var_name
+from ...core import format_var_name
 import pygame
 import weakref
 import uuid
@@ -20,7 +20,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QCursor
-
+from ...managers.serialization import SerializableProperty
 
 class DraggableLabel(QLabel):
     dragged = pyqtSignal(float)  # delta value
@@ -98,24 +98,29 @@ class DropWidget(QWidget):
 
 
 class FieldWidget(QWidget):
-    def __init__(self, name: str, field: Field):
+    def __init__(self, component, field : SerializableProperty, name: str):
         super().__init__()
+        self._component = weakref.ref(component)
+        self._field = weakref.ref(field)
         self.orig_name = name
         self.name = format_var_name(name)
-        self._field = weakref.ref(field)
-        self.field.subscribe(self.update_field, owner=self)
-        
+        self.component.subscribe(self.update_field, owner=self)
+
     @property
-    def field(self) -> Field:
-        return self._field()
+    def component(self):
+        return self._component() 
+    
+    @property
+    def field(self):
+        return self._field()            
     
     def update_field(self):
         raise NotImplementedError()
     
 
 class Vector2DWidget(FieldWidget):
-    def __init__(self, name: str, field: Field[pygame.Vector2]):
-        super().__init__(name, field)
+    def __init__(self, component, field, name: str):
+        super().__init__(component, field, name)
 
         self.layout = QVBoxLayout(self)
         self.label = QLabel(self.name)
@@ -160,31 +165,28 @@ class Vector2DWidget(FieldWidget):
         self.update_field()
 
     def on_x_changed(self, v: float):
-        self.field.value = pygame.Vector2(v, self.field.y)
-        print(self.field)
-        self.field.notify()
+        self.field.set(self.component, pygame.Vector2(v, self.field.get(self.component).y))
 
     def on_y_changed(self, v: float):
-        self.field.value = pygame.Vector2(self.field.x, v)
-        self.field.notify()
+        self.field.set(self.component, pygame.Vector2(self.field.get(self.component).x,v))
 
     def update_field(self):
         if self.field:
             self.x_scroll.blockSignals(True)
             self.y_scroll.blockSignals(True)
-            self.x_scroll.setValue(self.field.x)
-            self.y_scroll.setValue(self.field.y)
+            self.x_scroll.setValue(self.field.get(self.component).x)
+            self.y_scroll.setValue(self.field.get(self.component).y)
             self.x_scroll.blockSignals(False)
             self.y_scroll.blockSignals(False)
 
 class FloatWidget(FieldWidget):
-    def __init__(self, name: str, field: Field[float]):
-        super().__init__(name, field)
+    def __init__(self, component, field, name: str):
+        super().__init__(component, field, name)
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
 
         self.label = DraggableLabel(self.name, 0.1)
-        self.label.setFixedWidth(75)
+        self.label.setFixedWidth(50)
         self.spin = QDoubleSpinBox()
         self.spin.setDecimals(2)
         self.spin.setRange(-9999, 9999)
@@ -211,18 +213,17 @@ class FloatWidget(FieldWidget):
         self.update_field()
 
     def on_changed(self, value):
-        self.field.value = value
-        self.field.notify()
+        self.field.set(self.component, value)
 
     def update_field(self):
         if self.field:
             self.spin.blockSignals(True)
-            self.spin.setValue(self.field.value)
+            self.spin.setValue(self.field.get(self.component))
             self.spin.blockSignals(False)
 
 class BoolWidget(FieldWidget):
-    def __init__(self, name, field : Field[bool]):
-        super().__init__(name, field)
+    def __init__(self, component, field, name: str):
+        super().__init__(component, field, name)
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
 
@@ -244,28 +245,34 @@ class BoolWidget(FieldWidget):
         self.check_box.blockSignals(False)
 
 class CompRefWidget(FieldWidget):
-    def __init__(self, name, field: Field['Component']):
-        super().__init__(name, field)
+    def __init__(self, component, field, name: str):
+        super().__init__(component, field, name)
         self.drop_type = self.field.type
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
         self.label = QLabel(self.name)
         self.label.setFixedWidth(75)
         self.ref_widget = DropWidget(self.on_drop_callback)
-        self.ref_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.ref_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.ref_widget.layout.setContentsMargins(0, 0, 0, 0)
+        self.ref_widget.layout.setSpacing(0)
         self.ref_widget_label = QLabel("None", self.ref_widget)
+        self.ref_widget_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.ref_widget.layout.addStretch()
         button = QPushButton("B")
         
         self.ref_widget.layout.addWidget(button)
         self.ref_widget.setStyleSheet(
                 """
-                color: #2e2e2e;
+                DropWidget {
+                border: none;
+                background-color : #2e2e2e;
+                /* remove underline */
+            }
                 """)
         
         self.layout.addWidget(self.label)
-        self.layout.addWidget(self.ref_widget)
-
+        self.layout.addWidget(self.ref_widget, stretch=1)
         self.update_field()
 
     def on_drop_callback(self, gameobject_id):
@@ -275,14 +282,13 @@ class CompRefWidget(FieldWidget):
         for s in scenes:
             if g := s.id_mappings.get(gameobject_id):
                 gameobject = g
-                print("Found gameobject:", gameobject)
                 break
             print("Searching scenes...")
 
         if gameobject:
             component = gameobject.get_component(self.drop_type)
             if component:
-                self.field.value = component
+                self.field = component
                 print("Component found:", component)
                 self.update_field()
             else:
@@ -290,8 +296,8 @@ class CompRefWidget(FieldWidget):
 
     def update_field(self):
         self.ref_widget.blockSignals(True)
-        if self.field.value:
-            self.ref_widget_label.setText(str(self.field.value.gameobject.name))
+        if self.field:
+            self.ref_widget_label.setText(str(self.field.gameobject.name))
         else:
             self.ref_widget_label.setText(f"None ({self.drop_type.__name__})")
         self.ref_widget.blockSignals(False)

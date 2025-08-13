@@ -4,9 +4,19 @@ from .managers.serialization.serializer_manager import Serializer
 from .core import Observable
 from .components import Component_Registry
 from .managers import Layer, LayerManager
+
 class Engine:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(Engine, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
 
     def __init__(self):
+        if self._initialized:
+            return
         self.running = True
         self.state_manager = StateManager()
         self.scene_manager = SceneManager(self)
@@ -21,11 +31,11 @@ class Engine:
         from .gui.components import (
             TransformWidget, RigidBodyWidget, CircleColliderWidget, BoxColliderWidget, ComponentWidget
         )
-        Component_Registry.register_component("Transform", Transform.to_dict, Transform.from_dict, TransformWidget)
-        Component_Registry.register_component("RigidBody", RigidBody.to_dict, RigidBody.from_dict, RigidBodyWidget)
-        Component_Registry.register_component("BoxCollider", BoxCollider.to_dict, BoxCollider.from_dict, BoxColliderWidget)
-        Component_Registry.register_component("CircleCollider", CircleCollider.to_dict, CircleCollider.from_dict, CircleColliderWidget)
-        Component_Registry.register_component("Test_Component", Test_Component.to_dict, Test_Component.from_dict, ComponentWidget)
+        Component_Registry.register_component("Transform", Transform, TransformWidget)
+        Component_Registry.register_component("RigidBody", RigidBody, RigidBodyWidget)
+        Component_Registry.register_component("BoxCollider", BoxCollider, BoxColliderWidget)
+        Component_Registry.register_component("CircleCollider", CircleCollider, CircleColliderWidget)
+        Component_Registry.register_component("Test_Component", Test_Component, ComponentWidget)
     
     def register_layers(self):
         LayerManager.add_layer("UI")

@@ -1,6 +1,7 @@
 import json
 import yaml
 from ...components import Component_Registry
+
 class Serializer:
     @classmethod
     def serialize_scene(cls, scene):
@@ -12,11 +13,7 @@ class Serializer:
     @classmethod
     def deserialize_scene(cls, data, engine):
         from ..scenes.scene import Scene
-        scene = Scene(engine, data["name"])
-
-        for go_data in data["gameObjects"]:
-            go = cls._deserialize_gameobject(go_data)
-            scene.add_gameobject(go)
+        scene = Scene.from_dict(**data)
         return scene
 
     @classmethod
@@ -30,7 +27,7 @@ class Serializer:
 
     @classmethod
     def _deserialize_gameobject(cls, data, parent =None ):
-        from ...core import GameObject  # Replace with actual import
+        from ...core.gameobject import GameObject
         from ...components import Transform
         gameobject = GameObject.from_dict(data)
         for comp_data in data.get("components", []):

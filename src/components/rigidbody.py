@@ -1,18 +1,15 @@
 from .component import Component
 import pymunk
 import pygame
-from ..core import Field
 from ..core import Options
 
 class RigidBody(Component):
-    from ..core import GameObject
     def __init__(self, gameobject, enabled= True):
         super().__init__(gameobject, enabled)
-        self.mass = Field(1.0, float)
-        self.moment = Field(1.0, float)
-        self.body_type = Field({"Static" : pymunk.Body.STATIC, "Kinematic" : pymunk.Body.KINEMATIC, "Dynamic": pymunk.Body.DYNAMIC}, Options)
+        self.mass = 1
+        self.moment = 1
+        self.body_type = {"Static" : pymunk.Body.STATIC, "Kinematic" : pymunk.Body.KINEMATIC, "Dynamic": pymunk.Body.DYNAMIC}
         self.body = None
-        self.read_fields()
 
     def awake(self):
         self.body = pymunk.Body(self.mass, self.moment, self.body_type['Dynamic'])

@@ -1,5 +1,5 @@
 name: "SampleScene"
-gameObjects:
+gameobjects:
   - name: "Player"
     active: true
     tag : "Player"
@@ -7,19 +7,27 @@ gameObjects:
     components:
       - type: "Transform"
         enabled : true
-        position: [0, 0]
+        position: [100, 0]
         angle: 37.5
         scale: [1, 10]
-      - type: "RigidBody"
-      - type: "BoxCollider"
-      - type: "CircleCollider"
-      - type: "Test_Component"
     children:
       - name: "Weapon Holder"
         active: true
         components:
           - type: "Transform"
+            enabled : true
             position: [0, 0]
             angle: 0
             scale: [1, 1]
-        children: []
+        children: 
+          - name: "Weapon Holder"
+            active: true
+            components:
+              - type: "Transform"
+                enabled : true
+                position: [0, 0]
+                angle: 0
+                scale: [1, 1]
+            children: []
+
+

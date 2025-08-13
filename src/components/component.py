@@ -1,32 +1,25 @@
-from ..core import Observable, Field
+from ..core import Observable
+from ..managers.serialization.util import SerializeField
+from ..managers.serialization.serializable import Serializable
 import inspect
-class Component(Observable):
-    def __init__(self, gameobject, enabled= True):
-        from ..core import GameObject
-        super().__init__()
+
+class Component(Serializable):
+
+    def enabled_setter(self, value: bool):
+        if value and not self.enabled:
+            self._enabled = True
+            self.on_enable()
+        elif not value and self.enabled:
+            self._enabled = False
+            self.on_disable()
+
+    @SerializeField(default=True, type_hint=bool, setter=enabled_setter, hide= True)
+    def enabled(self) -> bool | None: pass
+
+    def __init__(self, gameobject, **kwargs):
+        from ..core.gameobject import GameObject
+        super().__init__(**kwargs)
         self.gameobject: GameObject = gameobject
-        self._enabled = enabled
-        self._fields = []
-
-    def read_fields(self):
-        import inspect
-        members = inspect.getmembers(self, lambda m: not inspect.isroutine(m))
-        self._fields += [(name, value) for name, value in members if isinstance(value, Field)]
-        self._fields = sorted(self._fields, key= lambda pair: pair[1].index)
-
-    @property
-    def enabled(self) -> bool:
-        return self._enabled
-    
-    @enabled.setter
-    def enabled(self, value):
-        self._enabled = value
-        self.notify()
-
-
-    @property
-    def fields(self):
-        return self._fields
 
     def awake(self): pass
     def start(self): pass
@@ -36,12 +29,14 @@ class Component(Observable):
     def on_enable(self): pass
     def on_disable(self): pass
     def destroy(self): pass
+    def set_enabled(self, e):
+        self.enabled = e
+
     def to_dict(self) -> 'Component' : pass
-    def from_dict(self) -> 'Component' : pass
-    def set_enabled(self, value: bool):
-        if value and not self.enabled:
-            self.enabled = True
-            self.on_enable()
-        elif not value and self.enabled:
-            self.enabled = False
-            self.on_disable()
+   
+    @classmethod
+    def from_dict(cls, gameobject, **kwargs):
+        return cls(gameobject, **kwargs)
+        
+
+    
