@@ -1,11 +1,15 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QTextEdit, QTabWidget, QDockWidget
+from PyQt6.QtWidgets import QApplication, QTextEdit, QTabWidget, QDockWidget,QSizePolicy
 from PyQt6.QtGui import QIcon
 from .gui.widgets import (MainWindow, Console, Inspector, Hierarchy, SceneView,
                            GameView, ProjectExplorer, IconManager)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from .core import Observable
 import weakref
+
+from PyQt6.QtCore import QSettings
+
+
 
 class Editor(Observable):
 
@@ -47,6 +51,8 @@ class Editor(Observable):
 
     def create_gui(self):
         self.gui_app = QApplication(sys.argv)
+        self.gui_app.setStyle('fusion')
+
         self.main_window = MainWindow(self)
         self.icon_manager = IconManager()
 
@@ -63,18 +69,25 @@ class Editor(Observable):
         self.console = Console(self)
         self.project_explorer = ProjectExplorer(self, "C:/Users/rockl/OneDrive/Desktop/Python Game Engine")
 
-        self.hierarchy_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
+        '''self.hierarchy_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
         self.inspector_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
         self.console_dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea)
-        self.project_explorer_dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea)
+        self.project_explorer_dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea)'''
 
 
         self.hierarchy_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable | QDockWidget.DockWidgetFeature.DockWidgetFloatable)
         self.inspector_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable | QDockWidget.DockWidgetFeature.DockWidgetFloatable)
         self.console_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable | QDockWidget.DockWidgetFeature.DockWidgetFloatable)
         self.project_explorer_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable | QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+        
+
+        self.hierarchy_dock.setObjectName("HierarchyDock")
+        self.inspector_dock.setObjectName("InspectorDock")
+        self.console_dock.setObjectName("ConsoleDock")
+        self.project_explorer_dock.setObjectName("ProjectExplorerDock")
 
         self.center_dock.addTab(self.scene_view, "Scene")
+        self.center_dock.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.center_dock.addTab(self.game_view, "Game")
         self.hierarchy_dock.setWidget(self.hierarchy)
         self.inspector_dock.setWidget(self.inspector)
@@ -84,23 +97,39 @@ class Editor(Observable):
 
         self.main_window.setCentralWidget(self.center_dock)
         self.main_window.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.hierarchy_dock)
-        # Add inspector dock to the right as you already do:
         self.main_window.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.inspector_dock)
-
-        # Add console and project explorer to bottom but DON'T tabify with each other if you want to control layout more explicitly:
         self.main_window.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.console_dock)
         self.main_window.tabifyDockWidget(self.console_dock, self.project_explorer_dock)
 
         self.main_window.setCorner(Qt.Corner.BottomRightCorner, Qt.DockWidgetArea.RightDockWidgetArea)
 
-        self.main_window.resizeDocks([self.hierarchy_dock, self.inspector_dock],[350, 300], Qt.Orientation.Horizontal)
-        self.main_window.resizeDocks([self.console_dock],[300],  Qt.Orientation.Vertical)
+        
 
         with open('src/gui/stylesheets/basetheme.css', 'r') as f:
             stylesheet = f.read()
         self.main_window.setStyleSheet(stylesheet)  # dark gray/near black
 
         self.main_window.show()
+        QTimer.singleShot(0, self.restore_layout)
+
+    def save_layout(self):
+        settings = QSettings("MyCompany", "MyGameEditor")
+        settings.setValue("main_window_state", self.main_window.saveState())
+        settings.setValue("main_window_geometry", self.main_window.saveGeometry())
+
+    
+
+
+    def restore_layout(self):
+        settings = QSettings("MyCompany", "MyGameEditor")
+        state = settings.value("main_window_state")
+        geometry = settings.value("main_window_geometry")
+        if state is not None:
+            self.main_window.restoreState(state)
+        if geometry is not None:
+            self.main_window.restoreGeometry(geometry)
+
+
 
     def start(self):
         self.subscribe_widgets()
@@ -114,6 +143,8 @@ class Editor(Observable):
         IconManager._instance.add_icon("transform", QIcon("src/media/transform_icon.png"))
         IconManager._instance.add_icon("inspector", QIcon("src/media/inspector_icon.png"))
         IconManager._instance.add_icon("gameobject", QIcon("src/media/gameobject_icon.png"))
+        IconManager._instance.add_icon("rigidbody", QIcon("src/media/rigidbody_icon.png"))
+        IconManager._instance.add_icon("box collider", QIcon("src/media/box_collider_icon.png"))
         
 
 

@@ -5,8 +5,8 @@ import pymunk
 
 class Collider(Component):
 
-    def __init__(self, gameobject, enabled= True):
-        super().__init__(gameobject, enabled)
+    def __init__(self, gameobject, **kwargs):
+        super().__init__(gameobject, **kwargs)
         self.offset = (0.0, 0.0)
         self.density = 1 
         self.friction = 0
@@ -27,8 +27,8 @@ class Collider(Component):
             self.create_shape(None)
         
 class BoxCollider(Collider):
-    def __init__(self, gameobject, enabled= True):
-        super().__init__(gameobject, enabled)
+    def __init__(self, gameobject, **kwargs):
+        super().__init__(gameobject, **kwargs)
         self.width = 1.0
         self.height = 1.0
 
@@ -40,17 +40,14 @@ class BoxCollider(Collider):
         return shape
     
     @classmethod
-    def from_dict(cls, data, gameobject):
-        return cls(
-            gameobject
-        )
-        
+    def from_dict(cls, gameobject, **kwargs):
+        return cls(gameobject, **kwargs)
     
 
     
 class CircleCollider(Collider):
-    def __init__(self, gameobject, enabled= True):
-        super().__init__(gameobject, enabled)
+    def __init__(self, gameobject, **kwargs):
+        super().__init__(gameobject, **kwargs)
         self.radius = 1.0
 
     def create_shape(self, body):
@@ -62,9 +59,5 @@ class CircleCollider(Collider):
         return shape
 
     @classmethod
-    def from_dict(cls, data, gameobject):
-        return cls(
-            gameobject
-        )
-        
-    
+    def from_dict(cls, gameobject, **kwargs):
+        return cls(gameobject, **kwargs)

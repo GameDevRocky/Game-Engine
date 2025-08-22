@@ -24,7 +24,6 @@ class SceneManager(Observable):
     def initialize(self):
         scene = Serializer.load_from_yaml("assets\scenes\SampleScene.yaml", self.engine)
         self.add_scene(scene)
-        print(scene.id_mappings)
 
     def start(self):
         pass

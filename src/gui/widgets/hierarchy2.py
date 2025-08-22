@@ -23,14 +23,24 @@ class LargeLineEditDelegate(QStyledItemDelegate):
 from PyQt6.QtCore import QMimeData, QByteArray
 
 class GameObjectModel(QStandardItemModel):
+    def __init__(self, scene : Scene, parent = None):
+        super().__init__(parent)
+        self.scene = scene
+
+    def get_mimetype(self, obj : GameObject) -> str:
+        return [obj.__class__.__name__] + [c.__class__.__name__ for k, c in obj.components.items()]
+
     def mimeData(self, indexes):
         mime_data = super().mimeData(indexes)
         if indexes:
             # Assume first selected index, get component ID
             obj_id = indexes[0].data(Qt.ItemDataRole.UserRole)
             if obj_id:
-                # Add your custom MIME data
-                mime_data.setData('application/x-component-ref', QByteArray(str(obj_id).encode('utf-8')))
+                obj = self.scene.find_gameobject_by_id(obj_id)
+                if obj:
+                    mimetypes = self.get_mimetype(obj)
+                    for mtype in mimetypes:     
+                        mime_data.setData(mtype, QByteArray(str(obj_id).encode('utf-8')))
         return mime_data
 
     
@@ -51,9 +61,7 @@ class GameObjectTreeView(QTreeView):
         self.setDropIndicatorShown(True)
         self.setDragDropMode(QTreeView.DragDropMode.DragDrop)
         self.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
-        self.setStyleSheet('''
-            border-width : 0px;
-            ''')
+        self.setStyleSheet('''border-width : 0px;''')
 
 
 
@@ -103,7 +111,7 @@ class SceneWidget(QWidget):
 
         self.layout.addWidget(self.header)
 
-        self.model = GameObjectModel(self)
+        self.model = GameObjectModel(self.scene, self)
         self.model.setHorizontalHeaderLabels([self.scene.name])
         
         self.model.itemChanged.connect(self.on_item_changed)
@@ -321,12 +329,7 @@ class Hierarchy(QWidget):
         self.context_menu_btn.clicked.connect(self.show_context_menu)
         self.header_layout.addWidget(self.context_menu_btn)
 
-        # Set custom title bar widget in dock
-        if self.dock:
-            style = self.dock.style()
-            self.header.setStyle(style)
-            self.dock.setTitleBarWidget(self.header)
-
+       
         # Scroll area + container widget for scene widgets
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)

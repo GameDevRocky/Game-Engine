@@ -1,33 +1,16 @@
 name: "SampleScene"
 gameobjects:
-  - name: "Player"
+  - name: "Parent"
+    id : 6b305458-5f41-4958-b118-ff16c1f1f49f
     active: true
     tag : "Player"
     layer : "Default"
     components:
       - type: "Transform"
+        id : 0ae280c6-d51a-43a2-9f8b-cdd4638a5636
         enabled : true
         position: [100, 0]
         angle: 37.5
         scale: [1, 10]
-    children:
-      - name: "Weapon Holder"
-        active: true
-        components:
-          - type: "Transform"
-            enabled : true
-            position: [0, 0]
-            angle: 0
-            scale: [1, 1]
-        children: 
-          - name: "Weapon Holder"
-            active: true
-            components:
-              - type: "Transform"
-                enabled : true
-                position: [0, 0]
-                angle: 0
-                scale: [1, 1]
-            children: []
-
-
+        parent : null
+        children : [8237d401-dcdc-4ad5-8f49-9af8e2b8ac21]

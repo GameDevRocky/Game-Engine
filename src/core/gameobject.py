@@ -7,6 +7,8 @@ from src.managers.serialization.util import SerializeField
 from src.managers.serialization.serializable import Serializable
 from ..components import Component_Registry
 from  ..managers import Layer, LayerManager
+
+
 class GameObject(Serializable):
 
     def layer_setter(self, layer):
@@ -21,29 +23,10 @@ class GameObject(Serializable):
     def transform_getter(self):
         return self.get_component("Transform")
 
-    def parent_setter(self, parent):
-        if self.transform:
-            if parent:
-                self.transform.parent = parent.transform
-            else:
-                self.transform.parent = None
-        self._parent = parent
-        self.notify()
-
     def active_setter(self, active):
         self._active = active
         self.notify()
-        for child in self.children:
-            child.active = active
 
-    def children_getter(self):
-        if self.transform:
-            return [t.gameobject for t in self.transform.children]
-        return []
-
-    def children_setter(self, v):
-        return
-    
     @SerializeField(default= "GameObject", type_hint= str)
     def name(self): pass
 
@@ -51,25 +34,19 @@ class GameObject(Serializable):
     def tag(self): pass
 
     @SerializeField(default= LayerManager.default , type_hint= Layer, setter=layer_setter)
-    def layer(self) : pass
+    def layer(self) -> Layer : pass
 
     @SerializeField(default=True, type_hint=bool, setter= active_setter)
-    def active(self): pass
+    def active(self) -> bool: pass
 
     @SerializeField(default=lambda : {}, type_hint=dict)
-    def components(self): pass
+    def components(self) -> dict: pass
 
     @SerializeField(default= None, setter= transform_setter, getter= transform_getter, type_hint= "Transform")  
     def transform(self): pass  
 
-    @SerializeField(default= lambda : str(uuid.uuid4()), type_hint=str, hide= True)
+    @SerializeField(default= lambda : str(uuid.uuid4()), type_hint=str, hidden= True)
     def id(self): pass
-
-    @SerializeField(default= None, setter=parent_setter, type_hint= Serializable)
-    def parent(self):pass
-
-    @SerializeField(default= None, setter=children_setter, getter=children_getter,  type_hint= list["GameObject"])
-    def children(self):pass
 
     @SerializeField(default=None, type_hint= 'Scene')
     def scene(self): pass
@@ -102,10 +79,9 @@ class GameObject(Serializable):
             return self._components.get(component_type, None)
 
     def remove_component(self, component_type):
-        component_type = type(self.get_component(component_type))
-
-        comp = self._components.pop(component_type, None)
-        if comp:
+        comp = self.get_component(component_type)
+        if comp and comp.removable:
+            comp = self._components.pop(type(comp), None)
             comp.destroy()
             self.notify()
             return True
@@ -115,31 +91,11 @@ class GameObject(Serializable):
         if getattr(self, "_destroyed", False):
             return
         self._destroyed = True
-
-        # Destroy children first
-        for child in list(self.children):
-            child.destroy()
-        self.children.clear()
-
-        # Remove from parent's hierarchy
-        if self.parent:
-            if self in getattr(self.parent, "children", []):
-                self.parent.children.remove(self)
-            if self.parent.transform and self.transform in self.parent.transform.children:
-                self.parent.transform.children.remove(self.transform)
-
-        # Break transform links
-        if self.transform:
-            self.transform.parent = None
-
-        # Destroy all components
         for comp in list(self._components.values()):
             comp.destroy()
-            if hasattr(comp, "game_object"):
-                comp.game_object = None
         self._components.clear()
+        self._transform = None
 
-        # Final notification
         self.notify()
 
 

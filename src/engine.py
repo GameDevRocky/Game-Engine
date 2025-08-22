@@ -63,5 +63,6 @@ class Engine:
         Time.update()
         self.editor.update()
         self.state_manager.update()
+        
         Observable.emit_all()
         

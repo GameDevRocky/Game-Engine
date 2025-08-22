@@ -2,10 +2,19 @@ from .component import Component
 import pymunk
 import pygame
 from ..core import Options
+from ..managers.serialization.util import SerializeField
+
 
 class RigidBody(Component):
-    def __init__(self, gameobject, enabled= True):
-        super().__init__(gameobject, enabled)
+
+    @SerializeField(default= 1, type_hint= float)
+    def mass(self): pass
+
+    @SerializeField(default= lambda : {}, type_hint= dict)
+    def body_type(self): pass
+
+    def __init__(self, gameobject, **kwargs):
+        super().__init__(gameobject, **kwargs)
         self.mass = 1
         self.moment = 1
         self.body_type = {"Static" : pymunk.Body.STATIC, "Kinematic" : pymunk.Body.KINEMATIC, "Dynamic": pymunk.Body.DYNAMIC}
@@ -27,13 +36,8 @@ class RigidBody(Component):
         transform.angle = self.body.angle
 
     @classmethod
-    def from_dict(cls, data, gameobject):
-        return cls(
-            gameobject
-        )
-        
-    
-
+    def from_dict(cls, gameobject, **kwargs):
+        return cls(gameobject, **kwargs)
 
 
     

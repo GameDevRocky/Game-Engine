@@ -3,9 +3,10 @@ import numpy as np
 from pygame import Vector2
 from .component import Component
 from ..managers.serialization.util import SerializeField
+from ..managers.serialization.serializable import  Serializable
 
 class Transform(Component):
-    
+
     def parent_setter(self, new_transform, keep_world=True):
         if new_transform is self:
             raise ValueError("Cannot set a Transform as its own parent.")
@@ -16,6 +17,7 @@ class Transform(Component):
         if new_transform:
             if self not in new_transform.children:
                 new_transform.children.append(self)
+        self.notify()
         self.gameobject.notify()
     
     def parent_getter(self):
@@ -30,17 +32,24 @@ class Transform(Component):
     @SerializeField(type_hint=Vector2, default=lambda: Vector2(1, 1))
     def scale(self): pass    
     
-    @SerializeField(type_hint='Transform', setter= parent_setter, getter= parent_getter)
+    @SerializeField(type_hint= Serializable , setter= parent_setter, getter= parent_getter, hidden= True)
     def parent(self): pass    
 
     @SerializeField(type_hint= list, default= lambda: [])
     def children(self):  pass
     
+
     def __init__(self, gameobject, **kwargs):
         super().__init__(gameobject, **kwargs)
         self._children = list(self.children)
         self._position = Vector2(self.position)
         self._scale = Vector2(self.scale)
+        self.removable = False
+        self.always_enabled = True
+
+    def add_child(self, transform):
+        transform.parent = self
+        self.children.append(transform)
 
     def to_dict(self):
         return {

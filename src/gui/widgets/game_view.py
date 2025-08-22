@@ -10,6 +10,7 @@ class GameView(QOpenGLWidget):
         super().__init__()
         self.editor = editor
         self.ctx = None
+        self.setMinimumSize(600, 200)
         
     def initializeGL(self):
         self.ctx = moderngl.create_context()
@@ -62,7 +63,7 @@ class GameView(QOpenGLWidget):
 
     def paintGL(self):
         self.fbo.use()
-        self.ctx.clear(0.1, 0.2, 0.57, 1.0)
+        self.ctx.clear(0.2, 0.4, 0.7, 1.0)
         self.vao.render(moderngl.TRIANGLE_STRIP)
         self.ctx.screen.use()
         self.fbo.color_attachments[0].use(location=0)

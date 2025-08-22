@@ -73,5 +73,7 @@ class Observable(QObject):
         while cls._callback_queue:
             callback = cls._callback_queue.pop()
             callback()
+           
+
 
 import time

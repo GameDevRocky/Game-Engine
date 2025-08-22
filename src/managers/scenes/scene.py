@@ -71,7 +71,6 @@ class Scene(Serializable):
                     self.root_gameobjects.remove(gameobject)
 
             self.removed_gameobjects.clear()
-
             self.notify()
 
     def restructure_root_objects(self):

@@ -10,6 +10,7 @@ class SceneView(QOpenGLWidget):
         super().__init__()
         self.editor = editor
         self.ctx = None
+        self.setMinimumSize(600, 200)
         
     def initializeGL(self):
         self.ctx = moderngl.create_context()

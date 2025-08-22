@@ -38,7 +38,7 @@ class Inspector(QWidget):
         self.name_field.setPlaceholderText("Assign Game Object Name")
         self.active_checkbox = QCheckBox()
         self.content_layout.setSpacing(0)    
-        self.header_layout.setContentsMargins(0,0,0,0)    
+        self.header_layout.setContentsMargins(8,0,0,0)    
         self.layout.setContentsMargins(0,0,0,0)    
         self.header_layout.addWidget(self.active_checkbox)
         self.header_layout.addWidget(self.name_field)
@@ -46,7 +46,7 @@ class Inspector(QWidget):
         self.content_layout.setContentsMargins(0,0,0,0)
         self.second_header = QWidget()
         self.second_header_layout = QHBoxLayout()
-        self.second_header_layout.setContentsMargins(0,0,0,0)
+        self.second_header_layout.setContentsMargins(8,0,0,0)
         self.second_header.setLayout(self.second_header_layout)
         self.tag_label = QLabel("Tag")
         self.tag_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
@@ -63,8 +63,8 @@ class Inspector(QWidget):
         self.second_header_layout.addWidget(self.layer_label)
         self.second_header_layout.addWidget(self.layer_combo_box)
         self.content_layout.addWidget(self.second_header)
-        self.content_layout.setSpacing(5)
-        self.layout.setContentsMargins(0,2,0,0)
+        self.content_layout.setSpacing(2)
+        self.layout.setContentsMargins(0,0,0,0)
 
 
         self.name_field.textEdited.connect(self.set_name)
@@ -74,9 +74,8 @@ class Inspector(QWidget):
 
         self.component_widgets : set[QWidget] = set()
         self.add_component_btn = QPushButton("Add Component")
-        self.content_layout.addStretch()
         self.scroll_area.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.content_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+        self.content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.layout.addWidget(self.add_component_btn)
         self.rebuild()
     

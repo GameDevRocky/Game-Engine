@@ -9,3 +9,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("My PyQt6 Main Window")
         self.setGeometry(0, 0, 1280, 800)
         self.showMaximized()
+
+    def closeEvent(self, event):
+        self.editor.save_layout()
+        super().closeEvent(event)
